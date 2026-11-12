@@ -25,6 +25,11 @@ lifted onto the embedding surface when one is present; Cartesian samples are
 drawn directly.
 
 Produce a file with `GeneralRelativity.Examples.SchwarzschildOrbitScene`
-(`schwarzschild_scene.ndjson` in the simulation working directory),
+(`schwarzschild_scene.ndjson`),
 `EarthJ2OrbitScene` (`earth_scene.ndjson`) or `CislunarOrbitScene`
 (`cislunar_scene.ndjson`).
+
+Scene files are written to `~/Documents/Visualization` when `~/Documents`
+exists. Set the `sceneDirectory` parameter or the `GR_SCENE_DIR` environment
+variable to use another folder; otherwise they go to the simulation working
+directory.

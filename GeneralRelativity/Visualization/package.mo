@@ -3,7 +3,9 @@ package Visualization "Embedding surfaces, curvature fields and a newline-delimi
   annotation(Documentation(info="<html>
 <h4>Scene stream</h4>
 <p>Models write one JSON object per line to a text file through
-<code>Modelica.Utilities.Streams.print</code>. The viewer in
+<code>Modelica.Utilities.Streams.print</code>. The <code>...Scene</code> examples put the file in
+<code>~/Documents/Visualization</code> by default; see
+<a href=\"modelica://GeneralRelativity.Visualization.scenePath\">scenePath</a>. The viewer in
 <code>GeneralRelativity/Visualization/threejs/index.html</code> opens that file
 in a browser without a server and renders:</p>
 <ul>

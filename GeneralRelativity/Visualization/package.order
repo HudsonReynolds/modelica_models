@@ -1,6 +1,7 @@
 flammParaboloid
 jsonNumber
 jsonVector
+scenePath
 beginScene
 writeSphere
 writeEmbeddingSurface
