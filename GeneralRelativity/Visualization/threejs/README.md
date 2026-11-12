@@ -1,6 +1,6 @@
 # Three.js viewer for GeneralRelativity scenes
 
-`index.html` renders the newline-delimited JSON scene files written by
+`index.html` is self-contained (the viewer script is inline) and renders the newline-delimited JSON scene files written by
 `GeneralRelativity.Visualization` (`beginScene`, `writeEmbeddingSurface`,
 `writeRadialProfile`, `writeFieldSlice`, `writeSphere`, `writeSample`).
 
