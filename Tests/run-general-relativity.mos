@@ -25,8 +25,11 @@ models := {
   "Tests.GeneralRelativityTests",
   "GeneralRelativity.Examples.SchwarzschildCurvature",
   "GeneralRelativity.Examples.SchwarzschildOrbit",
+  "GeneralRelativity.Examples.SchwarzschildOrbitScene",
   "GeneralRelativity.Examples.EarthJ2Orbit",
+  "GeneralRelativity.Examples.EarthJ2OrbitScene",
   "GeneralRelativity.Examples.CislunarOrbit",
+  "GeneralRelativity.Examples.CislunarOrbitScene",
   "GeneralRelativity.Examples.WeakFieldPoisson",
   "GeneralRelativity.Examples.StarInterior",
   "GeneralRelativity.Examples.GravitationalWavePulse"};

@@ -24,6 +24,7 @@ Spherical samples `{ct, r, theta, phi}` are mapped to Cartesian coordinates and
 lifted onto the embedding surface when one is present; Cartesian samples are
 drawn directly.
 
-Produce a file with `GeneralRelativity.Examples.SchwarzschildOrbit`
-(`schwarzschild_scene.ndjson` in the simulation working directory) or
-`GeneralRelativity.Examples.EarthJ2Orbit` (`earth_scene.ndjson`).
+Produce a file with `GeneralRelativity.Examples.SchwarzschildOrbitScene`
+(`schwarzschild_scene.ndjson` in the simulation working directory),
+`EarthJ2OrbitScene` (`earth_scene.ndjson`) or `CislunarOrbitScene`
+(`cislunar_scene.ndjson`).

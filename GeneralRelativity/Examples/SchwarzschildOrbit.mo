@@ -1,5 +1,5 @@
 within GeneralRelativity.Examples;
-model SchwarzschildOrbit "Precessing timelike orbit about a Schwarzschild black hole in geometric units, with curvature checks and a Three.js scene stream"
+model SchwarzschildOrbit "Precessing timelike orbit about a Schwarzschild black hole in geometric units, with curvature checks"
   extends GeneralRelativity.Geodesics.Geodesic(
     redeclare function metric = GeneralRelativity.Metrics.schwarzschild,
     p = {rs},
@@ -15,9 +15,6 @@ model SchwarzschildOrbit "Precessing timelike orbit about a Schwarzschild black 
   final parameter Real E = sqrt((1.0 - rs / r0) * (1.0 + L^2 / r0^2)) "Specific energy for a turning point at r0";
   final parameter Real weakFieldAdvanceEstimate = 6.0 * GeneralRelativity.Constants.pi * M / (L^2 / M)
     "Leading-order periastron advance per orbit, 6 pi M / p with p = L^2/M";
-  parameter String sceneFile = "schwarzschild_scene.ndjson" "Scene stream for Visualization/threejs/index.html";
-  parameter Real sampleInterval = 2.0 "Proper time between scene samples";
-  parameter Real rSceneMax = 30.0 * M "Outer radius of the embedding surface and profile";
   GeneralRelativity.Tensors.Curvature k "Curvature at the particle";
   Real energy "Killing energy -g(d_t, u); constant along the geodesic";
   Real angularMomentum "Killing angular momentum g(d_phi, u); constant along the geodesic";
@@ -27,12 +24,6 @@ model SchwarzschildOrbit "Precessing timelike orbit about a Schwarzschild black 
   discrete Real periastronPhi(start = 0.0, fixed = true) "Azimuth at the last periastron";
   discrete Real periastronAdvance(start = 0.0, fixed = true) "Azimuth gained per orbit beyond 2 pi, measured between periastra";
   discrete Integer periastra(start = 0, fixed = true) "Periastron passages seen";
-initial algorithm
-  GeneralRelativity.Visualization.beginScene(sceneFile, "Schwarzschild orbit", "spherical", rs, "M", 1.0);
-  GeneralRelativity.Visualization.writeSphere(sceneFile, "horizon", rs, zeros(3), "#000000");
-  GeneralRelativity.Visualization.writeSphere(sceneFile, "photon sphere", 1.5 * rs, zeros(3), "#5fb3ff");
-  GeneralRelativity.Visualization.writeEmbeddingSurface(sceneFile, metric, p, step, 1.05 * rs, rSceneMax, 40, 64);
-  GeneralRelativity.Visualization.writeRadialProfile(sceneFile, metric, p, step, 1.05 * rs, rSceneMax, 64);
 equation
   k = GeneralRelativity.Metrics.curvatureAt(metric, x, p, step);
   energy = -GeneralRelativity.Geodesics.killingConserved(g, {1.0, 0.0, 0.0, 0.0}, u);
@@ -52,10 +43,6 @@ equation
   assert(abs(k.kretschmann - kretschmannExpected) < 1.0e-4 * kretschmannExpected,
     "Numerical Kretschmann scalar disagrees with 12 rs^2 / r^6");
   assert(ricciNorm < 1.0e-5, "Ricci tensor is not zero in the Schwarzschild vacuum");
-algorithm
-  when sample(0.0, sampleInterval) then
-    GeneralRelativity.Visualization.writeSample(sceneFile, time, x, {k.kretschmann, energy, angularMomentum});
-  end when;
   annotation(experiment(StartTime = 0.0, StopTime = 1500.0, Tolerance = 1.0e-10, Interval = 0.5),
     Documentation(info="<html>
 <p>A test particle starts at periastron <code>r<sub>0</sub> = 10M</code> with angular
@@ -75,11 +62,6 @@ metric vanishes and the Kretschmann scalar equals
 between successive periastra: about 2.14 rad per orbit here, twice the
 leading-order <code>6&pi;M/p = 1.07</code> rad estimate, because the orbit is deep in
 the strong field; the two agree only when <code>r<sub>0</sub> &gt;&gt; r<sub>s</sub></code>.</p>
-<p>The model writes <code>schwarzschild_scene.ndjson</code> into the simulation
-working directory: Flamm's paraboloid coloured by curvature, the horizon and
-photon sphere, the radial profile of <code>g<sub>tt</sub></code>,
-<code>g<sub>rr</sub></code> and the invariants, and the orbit sampled every
-<code>sampleInterval</code> of proper time. Open it with
-<code>GeneralRelativity/Visualization/threejs/index.html</code>.</p>
+<p>This model has no file output, so it builds on every OpenModelica target. <a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbitScene\">SchwarzschildOrbitScene</a> adds the Three.js scene stream, which needs <code>Modelica.Utilities</code> to link.</p>
 </html>"));
 end SchwarzschildOrbit;

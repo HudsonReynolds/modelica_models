@@ -81,7 +81,8 @@ part in 10<sup>9</sup>; see
     {2.0}, {1e-3, 1e-3, 1e-3, 1e-3});
 // k.ricci is zero, k.kretschmann is 12*rs^2/r^6 = 48e-6</pre>
 <p><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbit\">Examples.SchwarzschildOrbit</a>
-integrates a precessing orbit, checks the conserved energy and angular momentum
-and streams the scene for <code>Visualization/threejs/index.html</code>.</p>
+integrates a precessing orbit and checks the conserved energy and angular momentum;
+<a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbitScene\">SchwarzschildOrbitScene</a>
+adds the scene stream for <code>Visualization/threejs/index.html</code>.</p>
 </html>"));
 end GeneralRelativity;

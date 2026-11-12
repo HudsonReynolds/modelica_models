@@ -1,5 +1,5 @@
 within GeneralRelativity.Examples;
-model EarthJ2Orbit "Low Earth orbit in the weak-field Earth metric: J2, post-Newtonian and Lense-Thirring accelerations with the tidal field and a scene stream"
+model EarthJ2Orbit "Low Earth orbit in the weak-field Earth metric: J2, post-Newtonian and Lense-Thirring accelerations and the tidal tensor"
   import GeneralRelativity.Constants;
   import GeneralRelativity.Perturbation.Potentials;
   parameter Real GM(unit = "m3/s2") = Constants.GM_earth "Gravitational parameter";
@@ -11,8 +11,6 @@ model EarthJ2Orbit "Low Earth orbit in the weak-field Earth metric: J2, post-New
   parameter Real eccentricity = 0.01;
   parameter Real inclination(unit = "rad") = 51.6 * Constants.pi / 180.0 "Inclination to the equator";
   parameter Boolean includeRelativity = true "Add the 1PN and Lense-Thirring accelerations";
-  parameter String sceneFile = "earth_scene.ndjson" "Scene stream for Visualization/threejs/index.html";
-  parameter Real sampleInterval(unit = "s") = 60.0;
   final parameter Real p[3] = {GM, R, J2} "Potential parameters";
   final parameter Real perigee(unit = "m") = semiMajorAxis * (1.0 - eccentricity);
   final parameter Real perigeeSpeed(unit = "m/s") = sqrt(GM * (1.0 + eccentricity) / perigee);
@@ -41,14 +39,7 @@ model EarthJ2Orbit "Low Earth orbit in the weak-field Earth metric: J2, post-New
 protected
   final parameter Real metricParameters[5] = {GM, R, J2, c, J};
   final parameter Real newtonianEnergy0(unit = "m2/s2") = 0.5 * perigeeSpeed^2 + Potentials.oblateJ2({perigee, 0.0, 0.0}, p);
-  final parameter Real sliceCoordinate[40] = {-3.0 * R + 6.0 * R * (i - 1) / 39.0 for i in 1:40} "Even count so no sample sits on the singular origin";
   Real riemannLinear[4, 4, 4, 4];
-initial algorithm
-  GeneralRelativity.Visualization.beginScene(sceneFile, "Earth J2 orbit", "cartesian", R, "m", c);
-  GeneralRelativity.Visualization.writeSphere(sceneFile, "Earth", R, zeros(3), "#3b7dd8");
-  GeneralRelativity.Visualization.writeFieldSlice(sceneFile, "tidal magnitude |Phi_,ij|", "xy", 0.0,
-    sliceCoordinate, sliceCoordinate,
-    GeneralRelativity.Visualization.tidalMagnitudeSlice(Potentials.oblateJ2Gradient, p, 1.0, sliceCoordinate, sliceCoordinate, 0.0, R));
 equation
   r = sqrt(x * x);
   aNewton = -Potentials.oblateJ2Gradient(x, p);
@@ -73,11 +64,6 @@ equation
   assert(abs(potentialFromMetric - Potentials.oblateJ2(x, p)) < 1.0e-5 * abs(Potentials.oblateJ2(x, p)),
     "g_00 of Metrics.earth does not encode the J2 potential");
   assert(abs(tidalLaplacian) < 1.0e-6 * GM / r^3, "The J2 potential is not harmonic outside the Earth");
-algorithm
-  when sample(0.0, sampleInterval) then
-    GeneralRelativity.Visualization.writeSample(sceneFile, time, {c * time, x[1], x[2], x[3]},
-      {relativeCorrection, raan, tidalLaplacian});
-  end when;
   annotation(experiment(StartTime = 0.0, StopTime = 12000.0, Tolerance = 1.0e-10, Interval = 10.0),
     Documentation(info="<html>
 <p>The equations of motion are the Newtonian gradient of the J2 potential plus
@@ -92,7 +78,6 @@ of the Newtonian acceleration. The node rate from J2 is about
 <code>g<sub>00</sub></code> read back as a potential; the Hessian of the potential
 gives the tidal tensor and the linearized Einstein tensor, whose vanishing
 confirms the J2 field is a vacuum solution of the linearized equations.</p>
-<p>The scene stream contains the Earth, the orbit sampled every minute and the
-tidal magnitude on the equatorial plane out to three Earth radii.</p>
+<p>This model has no file output, so it builds on every OpenModelica target. <a href=\"modelica://GeneralRelativity.Examples.EarthJ2OrbitScene\">EarthJ2OrbitScene</a> adds the Three.js scene stream, which needs <code>Modelica.Utilities</code> to link.</p>
 </html>"));
 end EarthJ2Orbit;

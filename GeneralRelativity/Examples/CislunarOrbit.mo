@@ -11,8 +11,6 @@ model CislunarOrbit "High Earth orbit perturbed by the Moon in the weak-field ci
   parameter Real r0(unit = "m") = 100.0e6 "Initial circular orbit radius";
   parameter Real phase0(unit = "rad") = Constants.pi / 2.0 "Initial spacecraft azimuth";
   parameter Boolean includeRelativity = true "Add the 1PN Earth term";
-  parameter String sceneFile = "cislunar_scene.ndjson" "Scene stream for Visualization/threejs/index.html";
-  parameter Real sampleInterval(unit = "s") = 1800.0;
   final parameter Real v0(unit = "m/s") = sqrt(GM_earth / r0);
   Real x[3](each unit = "m", start = r0 * {cos(phase0), sin(phase0), 0.0}, each fixed = true) "Position, Earth-centred inertial";
   Real v[3](each unit = "m/s", start = v0 * {-sin(phase0), cos(phase0), 0.0}, each fixed = true) "Velocity";
@@ -32,11 +30,6 @@ protected
   parameter Real jacobi0(unit = "m2/s2", fixed = false) "Jacobi constant at t = 0";
 initial equation
   jacobi0 = jacobi;
-initial algorithm
-  GeneralRelativity.Visualization.beginScene(sceneFile, "Cislunar orbit", "cartesian", Constants.R_earth, "m", c);
-  GeneralRelativity.Visualization.writeSphere(sceneFile, "Earth", Constants.R_earth, zeros(3), "#3b7dd8");
-  GeneralRelativity.Visualization.writeSphere(sceneFile, "Moon at t = 0", 1737.4e3,
-    Potentials.circularBodyPosition(0.0, moonDistance, moonRate, moonPhase0), "#bbbbbb");
 equation
   moon = Potentials.circularBodyPosition(time, moonDistance, moonRate, moonPhase0);
   potentialParameters = {GM_earth, GM_moon, moon[1], moon[2], moon[3]};
@@ -56,10 +49,6 @@ equation
   // 1 + g_00 is about 1e-10 here, so reading the potential back keeps six digits.
   assert(abs(potentialFromMetric - Potentials.twoBody(x, potentialParameters)) < 1.0e-4 * abs(Potentials.twoBody(x, potentialParameters)),
     "g_00 of Metrics.cislunar does not encode the two-body potential at this time");
-algorithm
-  when sample(0.0, sampleInterval) then
-    GeneralRelativity.Visualization.writeSample(sceneFile, time, {c * time, x[1], x[2], x[3]}, {jacobi - jacobi0, moonRange});
-  end when;
   annotation(experiment(StartTime = 0.0, StopTime = 864000.0, Tolerance = 1.0e-10, Interval = 600.0),
     Documentation(info="<html>
 <p>The Earth is fixed at the origin and the Moon moves on a circular orbit, so
@@ -71,5 +60,6 @@ is a few parts in <code>10<sup>11</sup></code> at this distance. The metric
 is evaluated along the trajectory and its <code>g<sub>00</sub></code> compared with
 the potential. Ten days of flight are simulated; the barycentre motion of the
 Earth and the lunar eccentricity are neglected.</p>
+<p>This model has no file output, so it builds on every OpenModelica target. <a href=\"modelica://GeneralRelativity.Examples.CislunarOrbitScene\">CislunarOrbitScene</a> adds the Three.js scene stream, which needs <code>Modelica.Utilities</code> to link.</p>
 </html>"));
 end CislunarOrbit;

@@ -4,11 +4,15 @@ package Examples "Worked models: Schwarzschild orbit and curvature, Earth J2, ci
 <table>
 <tr><th>Model</th><th>Shows</th></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbit\">SchwarzschildOrbit</a></td>
-<td>Geodesic integration, Killing constants, curvature at the particle, Three.js scene stream.</td></tr>
+<td>Geodesic integration, Killing constants, curvature at the particle.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbitScene\">SchwarzschildOrbitScene</a>,
+<a href=\"modelica://GeneralRelativity.Examples.EarthJ2OrbitScene\">EarthJ2OrbitScene</a>,
+<a href=\"modelica://GeneralRelativity.Examples.CislunarOrbitScene\">CislunarOrbitScene</a></td>
+<td>The same orbits plus the Three.js scene stream (need <code>Modelica.Utilities</code> to link).</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildCurvature\">SchwarzschildCurvature</a></td>
 <td>Christoffel symbols against closed form, vacuum Ricci, Kretschmann, implied stress-energy.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.EarthJ2Orbit\">EarthJ2Orbit</a></td>
-<td>Weak-field Earth: J2, post-Newtonian and Lense-Thirring accelerations, tidal field slice.</td></tr>
+<td>Weak-field Earth: J2, post-Newtonian and Lense-Thirring accelerations, tidal tensor.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.CislunarOrbit\">CislunarOrbit</a></td>
 <td>Earth-Moon weak field with a moving Moon, Jacobi constant as the integration check.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.WeakFieldPoisson\">WeakFieldPoisson</a></td>
