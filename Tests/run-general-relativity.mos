@@ -1,0 +1,47 @@
+// Tests.GeneralRelativityTests is simulated as a top-level model rather than
+// through Tests.All: it is entirely constant-foldable (see run-horizon.mos for
+// why that matters) and it passes functions as functional inputs, which the
+// Rumoca lowering of Tests.All need not support.
+// The GeneralRelativity examples follow, each as a top-level model with its
+// own experiment annotation (the Schwarzschild orbit runs for 1500 units of
+// proper time, the star interior starts at r = 1e-3) and continuous
+// assertions, so a non-empty result file means every assertion held.
+setCommandLineOptions("--std=3.6");
+
+if not loadModel(Modelica, {"4.1.0"}) then
+  print(getErrorString());
+  exit(1);
+end if;
+
+if not loadModel(Tests) then
+  print(getErrorString());
+  exit(1);
+end if;
+
+testOutputDirectory := getTempDirectoryPath();
+cd(testOutputDirectory);
+
+models := {
+  "Tests.GeneralRelativityTests",
+  "GeneralRelativity.Examples.SchwarzschildCurvature",
+  "GeneralRelativity.Examples.SchwarzschildOrbit",
+  "GeneralRelativity.Examples.EarthJ2Orbit",
+  "GeneralRelativity.Examples.CislunarOrbit",
+  "GeneralRelativity.Examples.WeakFieldPoisson",
+  "GeneralRelativity.Examples.StarInterior",
+  "GeneralRelativity.Examples.GravitationalWavePulse"};
+
+for name in models loop
+  print("==> " + name + "\n");
+  result := simulate(stringTypeName(name), method="dassl", outputFormat="csv",
+    fileNamePrefix="modelica_models_" + name); getErrorString();
+  if result.resultFile == "" then
+    print(name + " simulation failed\n");
+    print(result.messages);
+    exit(1);
+  end if;
+  print(name + " OK\n");
+end for;
+
+print("GENERAL_RELATIVITY_EXAMPLES_OK\n");
+exit(0);

@@ -6,6 +6,7 @@ package Tests "Assertion-based tests for the reusable Modelica libraries"
     Avionics,
     Control,
     Estimation,
+    GeneralRelativity,
     Geodesy,
     LieGroups,
     LinearAlgebra,

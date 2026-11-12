@@ -6,8 +6,11 @@ and links are the API reference.
 
 Useful entry points are [`Estimation.StrapdownINS`](../Estimation/StrapdownINS/package.mo),
 [`Estimation.FusionHorizon`](../Estimation/FusionHorizon/package.mo),
-[`SLAM`](../SLAM/package.mo) and
-[`SLAM.Simulation.LandmarkCamera`](../SLAM/Simulation/LandmarkCamera.mo).
+[`SLAM`](../SLAM/package.mo),
+[`SLAM.Simulation.LandmarkCamera`](../SLAM/Simulation/LandmarkCamera.mo) and
+[`GeneralRelativity`](../GeneralRelativity/package.mo), whose Three.js scene
+viewer is described in
+[`GeneralRelativity/Visualization/threejs/README.md`](../GeneralRelativity/Visualization/threejs/README.md).
 
 These guides cover work outside the library:
 

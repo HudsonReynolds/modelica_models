@@ -6,3 +6,5 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 target/
+# Scene streams written by GeneralRelativity examples into the working directory.
+*.ndjson

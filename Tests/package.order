@@ -48,6 +48,7 @@ PositionLoopStabilityTests
 ManualGuidanceTests
 ManualGuidanceDynamics
 GeodesyTests
+GeneralRelativityTests
 MultirotorInnerLoopTests
 Cubs2EstimatorTests
 DynamicsTests

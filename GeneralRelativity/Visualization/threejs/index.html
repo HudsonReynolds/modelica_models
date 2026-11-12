@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeneralRelativity scene viewer</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #151a24;
+    --text: #e6e9ef;
+    --muted: #8a93a6;
+    --accent: #5fb3ff;
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+  #layout { display: grid; grid-template-columns: 1fr 340px; grid-template-rows: auto 1fr; height: 100%; }
+  header { grid-column: 1 / 3; display: flex; gap: 12px; align-items: center; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid #222a38; flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; font-weight: 600; }
+  header label { color: var(--muted); }
+  header input[type=range] { width: 220px; }
+  #view { position: relative; min-height: 300px; }
+  #view canvas { display: block; }
+  #drop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); pointer-events: none; text-align: center; padding: 16px; }
+  aside { background: var(--panel); border-left: 1px solid #222a38; padding: 10px 12px; overflow: auto; }
+  aside h2 { font-size: 13px; margin: 10px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  aside canvas { width: 100%; background: #0f131b; border-radius: 4px; }
+  #readout { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre; }
+  button { background: #222a38; color: var(--text); border: 1px solid #2f3a4e; border-radius: 4px; padding: 4px 10px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  @media (max-width: 800px) {
+    #layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+    header { grid-column: 1; }
+    aside { border-left: none; border-top: 1px solid #222a38; max-height: 40vh; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="layout">
+  <header>
+    <h1>GeneralRelativity viewer</h1>
+    <input type="file" id="file" accept=".ndjson,.json,.txt">
+    <button id="play">Play</button>
+    <label>λ <input type="range" id="time" min="0" max="1000" value="0" step="1"></label>
+    <label><input type="checkbox" id="showSurface" checked> surface</label>
+    <label><input type="checkbox" id="showField" checked> field</label>
+    <label><input type="checkbox" id="showPath" checked> path</label>
+    <label>speed <input type="range" id="speed" min="1" max="200" value="40" step="1"></label>
+  </header>
+  <div id="view"><div id="drop">Open or drop a scene file written by GeneralRelativity.Visualization (for example schwarzschild_scene.ndjson).</div></div>
+  <aside>
+    <h2>Scene</h2>
+    <div id="readout">no scene loaded</div>
+    <h2>Radial profile</h2>
+    <canvas id="profile" width="320" height="260"></canvas>
+    <h2>Colour scale</h2>
+    <canvas id="scale" width="320" height="36"></canvas>
+  </aside>
+</div>
+<script type="module" src="viewer.js"></script>
+</body>
+</html>

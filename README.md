@@ -50,6 +50,14 @@ artifacts; they do not own alternate copies of these models.
   inertia (`armature`). `MultiBodyLie.Contact` is a smooth sphere-against-ground
   contact law; sensors and general collision geometry are separate.
 - `MathUtilities/`: shared clipping, filtering, angle, rate, and norm helpers.
+- `GeneralRelativity/`: metric curvature in the (-+++) convention: Christoffel,
+  Riemann, Ricci, Einstein and implied stress-energy tensors from any metric
+  function; Schwarzschild, Kerr, weak-field Earth (J2, Lense-Thirring) and
+  cislunar metrics; vacuum, dust, perfect-fluid and cosmological-constant
+  sources; linearized gravity and post-Newtonian equations of motion;
+  finite-difference and finite-element Poisson solvers plus a method-of-lines
+  wave model; and a newline-delimited JSON scene stream rendered by the
+  Three.js viewer in `GeneralRelativity/Visualization/threejs/`.
 - `Control/`: reusable control laws and sampled controller building blocks,
   including the multirotor SE_2(3)/SO(3) log-linear controller and the
   `Multirotor.RateLoop` and `Multirotor.Allocation` inner-loop building blocks.
