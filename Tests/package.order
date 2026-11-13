@@ -49,6 +49,10 @@ ManualGuidanceTests
 ManualGuidanceDynamics
 GeodesyTests
 GeneralRelativityTests
+GeneralRelativityCurvatureTests
+GeneralRelativityGeometryTests
+GeneralRelativityConnectionTests
+GeneralRelativityMetricTests
 MultirotorInnerLoopTests
 Cubs2EstimatorTests
 DynamicsTests

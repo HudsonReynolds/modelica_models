@@ -1,19 +1,20 @@
 within GeneralRelativity.Tensors;
-function riemannLower "Fully covariant Riemann tensor R[a, b, c, d] = R_abcd from metric second derivatives and Christoffel symbols"
-  input Real g[4, 4] "Covariant metric";
-  input Real ddg[4, 4, 4, 4] "ddg[k, l, i, j] = d^2 g_ij / (d x^k d x^l)";
-  input Real Gamma[4, 4, 4] "Gamma[i, j, k] = Gamma^i_jk";
-  output Real R[4, 4, 4, 4] "R[a, b, c, d] = R_abcd";
+function riemannLower "Fully covariant Riemann tensor R[a, b, c, d] = R_abcd from metric second derivatives and Christoffel symbols, in any dimension"
+  input Real g[:, size(g, 1)] "Covariant metric";
+  input Real ddg[size(g, 1), size(g, 1), size(g, 1), size(g, 1)] "ddg[k, l, i, j] = d^2 g_ij / (d x^k d x^l)";
+  input Real Gamma[size(g, 1), size(g, 1), size(g, 1)] "Gamma[i, j, k] = Gamma^i_jk";
+  output Real R[size(g, 1), size(g, 1), size(g, 1), size(g, 1)] "R[a, b, c, d] = R_abcd";
 protected
+  Integer n = size(g, 1);
   Real quadratic;
 algorithm
-  for a in 1:4 loop
-    for b in 1:4 loop
-      for c in 1:4 loop
-        for d in 1:4 loop
+  for a in 1:n loop
+    for b in 1:n loop
+      for c in 1:n loop
+        for d in 1:n loop
           quadratic := 0.0;
-          for e in 1:4 loop
-            for f in 1:4 loop
+          for e in 1:n loop
+            for f in 1:n loop
               quadratic := quadratic + g[e, f] * (Gamma[e, b, c] * Gamma[f, a, d] - Gamma[e, b, d] * Gamma[f, a, c]);
             end for;
           end for;

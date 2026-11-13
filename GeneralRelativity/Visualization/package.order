@@ -7,5 +7,6 @@ writeSphere
 writeEmbeddingSurface
 writeRadialProfile
 writeFieldSlice
+writeTrack
 writeSample
 tidalMagnitudeSlice

@@ -1,14 +1,16 @@
 within GeneralRelativity;
-package Examples "Worked models: Schwarzschild orbit and curvature, Earth J2, cislunar, Poisson solvers, star interior, wave pulse"
+package Examples "Worked models: Schwarzschild orbit and curvature, Newton-Cartan comparison, Earth J2, cislunar, Poisson solvers, star interior, wave pulse"
   annotation(Documentation(info="<html>
 <table>
 <tr><th>Model</th><th>Shows</th></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbit\">SchwarzschildOrbit</a></td>
 <td>Geodesic integration, Killing constants, curvature at the particle.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildNewtonCartanOrbit\">SchwarzschildNewtonCartanOrbit</a></td>
+<td>The same orbit beside a Newton-Cartan geodesic from identical initial data, advanced in the same coordinate time: precession against a closed Kepler ellipse.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbitScene\">SchwarzschildOrbitScene</a>,
 <a href=\"modelica://GeneralRelativity.Examples.EarthJ2OrbitScene\">EarthJ2OrbitScene</a>,
 <a href=\"modelica://GeneralRelativity.Examples.CislunarOrbitScene\">CislunarOrbitScene</a></td>
-<td>The same orbits plus the Three.js scene stream (need <code>Modelica.Utilities</code> to link).</td></tr>
+<td>The same orbits plus the Three.js scene stream (need <code>Modelica.Utilities</code> to link); the Schwarzschild scene animates the relativistic and Newton-Cartan bodies together.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildCurvature\">SchwarzschildCurvature</a></td>
 <td>Christoffel symbols against closed form, vacuum Ricci, Kretschmann, implied stress-energy.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.EarthJ2Orbit\">EarthJ2Orbit</a></td>

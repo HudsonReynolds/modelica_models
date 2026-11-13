@@ -45,23 +45,75 @@ caller-chosen step per coordinate
 <h4>Choose a package</h4>
 <table>
 <tr><th>Task</th><th>Package</th></tr>
-<tr><td>Christoffel, Riemann, Ricci, Einstein and stress-energy tensors from a metric and its derivatives</td>
+<tr><td>Christoffel, Riemann, Ricci, Einstein, Weyl, Schouten and stress-energy tensors in any dimension; quadratic and cubic curvature invariants</td>
 <td><a href=\"modelica://GeneralRelativity.Tensors\">Tensors</a></td></tr>
-<tr><td>Named metrics and numerical curvature at a point</td>
+<tr><td>Curvature, torsion, non-metricity and contortion of any affine connection</td>
+<td><a href=\"modelica://GeneralRelativity.Connections\">Connections</a></td></tr>
+<tr><td>Named metrics (Schwarzschild, Kerr, Reissner-Nordstr&ouml;m, Kerr-Newman, de Sitter, FLRW, PPN, weak-field Earth and cislunar), numerical curvature and the Cotton tensor at a point</td>
 <td><a href=\"modelica://GeneralRelativity.Metrics\">Metrics</a></td></tr>
-<tr><td>Vacuum, dust, perfect fluid and cosmological-constant sources</td>
+<tr><td>Orthonormal and null tetrads, Newman-Penrose Weyl scalars, Petrov classification, energy conditions</td>
+<td><a href=\"modelica://GeneralRelativity.Frames\">Frames</a></td></tr>
+<tr><td>Vacuum, dust, perfect fluid, radiation, electromagnetic, polytrope and cosmological-constant sources</td>
 <td><a href=\"modelica://GeneralRelativity.StressEnergy\">StressEnergy</a></td></tr>
-<tr><td>Linearized gravity, Newtonian limit, J2 and two-body potentials, post-Newtonian motion</td>
+<tr><td>Linearized gravity and gauge transformations, Newtonian limit, J2 and two-body potentials, post-Newtonian motion, PPN parameters and solar-system tests</td>
 <td><a href=\"modelica://GeneralRelativity.Perturbation\">Perturbation</a></td></tr>
-<tr><td>Geodesic equation and a replaceable-metric geodesic model</td>
+<tr><td>Newtonian gravity as an affine connection (Newton-Cartan): clock form, spatial cometric, field equation</td>
+<td><a href=\"modelica://GeneralRelativity.NewtonCartan\">NewtonCartan</a></td></tr>
+<tr><td>Geodesic equation, replaceable-metric and replaceable-connection geodesic models</td>
 <td><a href=\"modelica://GeneralRelativity.Geodesics\">Geodesics</a></td></tr>
+<tr><td>Lie derivatives of the metric, Killing and conformal Killing vectors</td>
+<td><a href=\"modelica://GeneralRelativity.Symmetry\">Symmetry</a></td></tr>
+<tr><td>3+1 (ADM) split: lapse, shift, extrinsic curvature, Hamiltonian and momentum constraints</td>
+<td><a href=\"modelica://GeneralRelativity.Foliation\">Foliation</a></td></tr>
+<tr><td>Differential forms: wedge, Hodge dual, interior product, exterior derivative, codifferential, Cartan structure equations</td>
+<td><a href=\"modelica://GeneralRelativity.ExteriorCalculus\">ExteriorCalculus</a></td></tr>
 <tr><td>Finite-difference Poisson, spherical finite elements, method-of-lines wave propagation</td>
 <td><a href=\"modelica://GeneralRelativity.Numerical\">Numerical</a></td></tr>
+<tr><td>Spherical harmonics, Clebsch-Gordan and Wigner 3j coefficients, Gaunt integrals</td>
+<td><a href=\"modelica://GeneralRelativity.Harmonics\">Harmonics</a></td></tr>
 <tr><td>Embedding surfaces, curvature fields and the Three.js scene stream</td>
 <td><a href=\"modelica://GeneralRelativity.Visualization\">Visualization</a></td></tr>
-<tr><td>Schwarzschild orbit and curvature, Earth J2, cislunar, Poisson, star interior, wave pulse</td>
+<tr><td>Schwarzschild orbit against Newton-Cartan, curvature, Earth J2, cislunar, Poisson, constant-density and polytropic stars, wave pulse</td>
 <td><a href=\"modelica://GeneralRelativity.Examples\">Examples</a></td></tr>
 </table>
+
+<h4>Relation to TensorGR.jl</h4>
+<p>The package covers the <i>component</i> side of the Julia package
+<a href=\"https://github.com/tobiasosborne/TensorGR.jl\">TensorGR.jl</a>
+(Apache-2.0): everything that evaluates tensors numerically at events of a
+given metric or connection. The implementation is written independently from
+the standard literature; no TensorGR source is used.</p>
+<table>
+<tr><th>TensorGR.jl module</th><th>Here</th></tr>
+<tr><td>Component calculations (<code>CTensor</code>: Christoffel, Riemann, Ricci, Einstein, Weyl, Kretschmann)</td>
+<td><a href=\"modelica://GeneralRelativity.Tensors\">Tensors</a>, <a href=\"modelica://GeneralRelativity.Metrics.curvatureAt\">Metrics.curvatureAt</a>; any dimension</td></tr>
+<tr><td>Curvature algebra (Weyl, Schouten, trace-free Ricci, Cotton) and invariants through cubic order, Gauss-Bonnet</td>
+<td><a href=\"modelica://GeneralRelativity.Tensors\">Tensors</a>, <a href=\"modelica://GeneralRelativity.Metrics.cottonAt\">Metrics.cottonAt</a></td></tr>
+<tr><td>Frame bundle and tetrads, Newman-Penrose Weyl scalars, Petrov classification, energy conditions</td>
+<td><a href=\"modelica://GeneralRelativity.Frames\">Frames</a></td></tr>
+<tr><td>Metric-affine gravity: torsion, contortion, non-metricity</td>
+<td><a href=\"modelica://GeneralRelativity.Connections\">Connections</a> (plus Newton-Cartan in <a href=\"modelica://GeneralRelativity.NewtonCartan\">NewtonCartan</a>)</td></tr>
+<tr><td>Exterior calculus and Cartan structure equations</td>
+<td><a href=\"modelica://GeneralRelativity.ExteriorCalculus\">ExteriorCalculus</a></td></tr>
+<tr><td>3+1 foliation, ADM constraints, Gauss-Codazzi</td>
+<td><a href=\"modelica://GeneralRelativity.Foliation\">Foliation</a></td></tr>
+<tr><td>Killing vectors</td><td><a href=\"modelica://GeneralRelativity.Symmetry\">Symmetry</a></td></tr>
+<tr><td>Symmetry ans&auml;tze (spherical, axial, static, FLRW) as metrics</td><td><a href=\"modelica://GeneralRelativity.Metrics\">Metrics</a></td></tr>
+<tr><td>Perturbation theory (linear order), gauge transformations</td><td><a href=\"modelica://GeneralRelativity.Perturbation\">Perturbation</a></td></tr>
+<tr><td>PPN formalism</td><td><a href=\"modelica://GeneralRelativity.Metrics.ppn\">Metrics.ppn</a>, <a href=\"modelica://GeneralRelativity.Perturbation\">Perturbation</a></td></tr>
+<tr><td>Matter and equations of state, TOV solver</td>
+<td><a href=\"modelica://GeneralRelativity.StressEnergy\">StressEnergy</a>, <a href=\"modelica://GeneralRelativity.Examples.StarInterior\">Examples.StarInterior</a>, <a href=\"modelica://GeneralRelativity.Examples.PolytropeStar\">Examples.PolytropeStar</a></td></tr>
+<tr><td>Geodesics</td><td><a href=\"modelica://GeneralRelativity.Geodesics\">Geodesics</a></td></tr>
+<tr><td>Spherical harmonics, Clebsch-Gordan, Gaunt integrals</td><td><a href=\"modelica://GeneralRelativity.Harmonics\">Harmonics</a> (scalar harmonics only)</td></tr>
+</table>
+<p>Not reproduced, because they manipulate symbolic expressions rather than
+numbers and Modelica has no term-rewriting runtime: the abstract tensor AST,
+Butler-Portugal index canonicalization, rewrite rules and
+<code>solve_tensors</code>, symbolic perturbation to arbitrary order and Isaacson
+averaging, quadratic actions, spin projectors and particle spectra, Feynman
+rules, Horndeski/DHOST/bimetric actions, covariant phase space, Clifford and
+Dirac-trace algebra, and LaTeX input and output. Vector and tensor
+harmonics are also not included.</p>
 
 <h4>Units</h4>
 <p>Every function takes <code>c</code> and <code>G</code> explicitly where they
@@ -83,6 +135,7 @@ part in 10<sup>9</sup>; see
 <p><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbit\">Examples.SchwarzschildOrbit</a>
 integrates a precessing orbit and checks the conserved energy and angular momentum;
 <a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbitScene\">SchwarzschildOrbitScene</a>
-adds the scene stream for <code>Visualization/threejs/index.html</code>.</p>
+adds the Newton-Cartan body integrated from the same initial data and the scene
+stream for <code>Visualization/threejs/index.html</code>, which animates both.</p>
 </html>"));
 end GeneralRelativity;

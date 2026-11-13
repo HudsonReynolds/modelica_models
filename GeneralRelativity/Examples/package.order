@@ -1,4 +1,5 @@
 SchwarzschildOrbit
+SchwarzschildNewtonCartanOrbit
 SchwarzschildOrbitScene
 SchwarzschildCurvature
 EarthJ2Orbit
@@ -7,4 +8,5 @@ CislunarOrbit
 CislunarOrbitScene
 WeakFieldPoisson
 StarInterior
+PolytropeStar
 GravitationalWavePulse

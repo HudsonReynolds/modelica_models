@@ -6,3 +6,8 @@ cosmologicalConstant
 energyDensity
 trace
 einsteinResidual
+fieldStrength
+electromagnetic
+polytropePressure
+polytropeDensity
+polytropeEnergyDensity

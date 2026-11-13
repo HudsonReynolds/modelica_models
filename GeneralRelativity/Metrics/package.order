@@ -5,6 +5,14 @@ kerr
 weakFieldPointMass
 earth
 cislunar
+reissnerNordstrom
+kerrNewman
+schwarzschildDeSitter
+flrw
+flrwCurved
+isotropicSchwarzschild
+ppn
 derivative
 secondDerivative
 curvatureAt
+cottonAt

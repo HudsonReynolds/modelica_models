@@ -54,7 +54,11 @@ artifacts; they do not own alternate copies of these models.
   Riemann, Ricci, Einstein and implied stress-energy tensors from any metric
   function; Schwarzschild, Kerr, weak-field Earth (J2, Lense-Thirring) and
   cislunar metrics; vacuum, dust, perfect-fluid and cosmological-constant
-  sources; linearized gravity and post-Newtonian equations of motion;
+  sources; general affine connections (torsion, non-metricity) and
+  Newton-Cartan gravity; Weyl, Cotton and cubic invariants, tetrads,
+  Newman-Penrose scalars, Petrov types and energy conditions; 3+1 ADM
+  constraints, Killing vectors, differential forms and spherical harmonics;
+  linearized gravity, PPN and post-Newtonian equations of motion;
   finite-difference and finite-element Poisson solvers plus a method-of-lines
   wave model; and a newline-delimited JSON scene stream rendered by the
   Three.js viewer in `GeneralRelativity/Visualization/threejs/`.

@@ -1,10 +1,17 @@
 Constants
 Interfaces
 Tensors
+Connections
 Metrics
+Frames
 StressEnergy
 Perturbation
+NewtonCartan
 Geodesics
+Symmetry
+Foliation
+ExteriorCalculus
 Numerical
+Harmonics
 Visualization
 Examples

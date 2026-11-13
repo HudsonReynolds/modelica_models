@@ -10,6 +10,13 @@ package Metrics "Named metrics, finite-difference metric derivatives and curvatu
 <tr><td><a href=\"modelica://GeneralRelativity.Metrics.weakFieldPointMass\">weakFieldPointMass</a></td><td>{ct, x, y, z}</td><td>{GM, c}</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Metrics.earth\">earth</a></td><td>{ct, x, y, z}, z along the spin axis</td><td>{GM, R, J2, c, J}</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Metrics.cislunar\">cislunar</a></td><td>{ct, x, y, z} Earth-centred inertial</td><td>{GM<sub>E</sub>, GM<sub>M</sub>, d, &Omega;, c, &phi;<sub>0</sub>}</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Metrics.reissnerNordstrom\">reissnerNordstrom</a></td><td>{ct, r, &theta;, &phi;}</td><td>{r<sub>s</sub>, r<sub>Q</sub>}</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Metrics.kerrNewman\">kerrNewman</a></td><td>{ct, r, &theta;, &phi;} Boyer-Lindquist</td><td>{r<sub>s</sub>, a, r<sub>Q</sub>}</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Metrics.schwarzschildDeSitter\">schwarzschildDeSitter</a></td><td>{ct, r, &theta;, &phi;}</td><td>{r<sub>s</sub>, &Lambda;}</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Metrics.flrw\">flrw</a></td><td>{ct, x, y, z} comoving, spatially flat</td><td>{ct<sub>0</sub>, n} or {ct<sub>0</sub>, n, H}</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Metrics.flrwCurved\">flrwCurved</a></td><td>{ct, r, &theta;, &phi;} comoving</td><td>{ct<sub>0</sub>, n, k}</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Metrics.isotropicSchwarzschild\">isotropicSchwarzschild</a></td><td>{ct, x, y, z} isotropic</td><td>{r<sub>s</sub>}</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Metrics.ppn\">ppn</a></td><td>{ct, x, y, z} isotropic PPN gauge</td><td>{r<sub>s</sub>, &gamma;, &beta;}</td></tr>
 </table>
 <h4>Finite differences</h4>
 <p><a href=\"modelica://GeneralRelativity.Metrics.derivative\">derivative</a> and

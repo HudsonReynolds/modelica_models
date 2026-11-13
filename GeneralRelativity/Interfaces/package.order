@@ -1,3 +1,5 @@
 MetricFunction
+ConnectionFunction
+VectorFieldFunction
 PotentialFunction
 PotentialGradientFunction

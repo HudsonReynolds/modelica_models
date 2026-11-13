@@ -1,7 +1,8 @@
-// Tests.GeneralRelativityTests is simulated as a top-level model rather than
-// through Tests.All: it is entirely constant-foldable (see run-horizon.mos for
-// why that matters) and it passes functions as functional inputs, which the
-// Rumoca lowering of Tests.All need not support.
+// Tests.GeneralRelativityTests and the other Tests.GeneralRelativity* models are
+// simulated as top-level models rather than through Tests.All: they are entirely
+// constant-foldable (see run-horizon.mos for why that matters) and they pass
+// functions as functional inputs, which the Rumoca lowering of Tests.All need
+// not support.
 // The GeneralRelativity examples follow, each as a top-level model with its
 // own experiment annotation (the Schwarzschild orbit runs for 1500 units of
 // proper time, the star interior starts at r = 1e-3) and continuous
@@ -23,8 +24,13 @@ cd(testOutputDirectory);
 
 models := {
   "Tests.GeneralRelativityTests",
+  "Tests.GeneralRelativityCurvatureTests",
+  "Tests.GeneralRelativityGeometryTests",
+  "Tests.GeneralRelativityConnectionTests",
+  "Tests.GeneralRelativityMetricTests",
   "GeneralRelativity.Examples.SchwarzschildCurvature",
   "GeneralRelativity.Examples.SchwarzschildOrbit",
+  "GeneralRelativity.Examples.SchwarzschildNewtonCartanOrbit",
   "GeneralRelativity.Examples.SchwarzschildOrbitScene",
   "GeneralRelativity.Examples.EarthJ2Orbit",
   "GeneralRelativity.Examples.EarthJ2OrbitScene",
@@ -32,6 +38,7 @@ models := {
   "GeneralRelativity.Examples.CislunarOrbitScene",
   "GeneralRelativity.Examples.WeakFieldPoisson",
   "GeneralRelativity.Examples.StarInterior",
+  "GeneralRelativity.Examples.PolytropeStar",
   "GeneralRelativity.Examples.GravitationalWavePulse"};
 
 for name in models loop

@@ -9,3 +9,10 @@ weakFieldCurvature
 tidalTensor
 postNewtonianAcceleration
 lenseThirringAcceleration
+gaugeTransform
+PPNParameters
+bransDicke
+nordtvedtEta
+ppnPerihelionAdvance
+ppnLightDeflection
+ppnShapiroDelay

@@ -19,8 +19,11 @@ Kretschmann against radius (<a href=\"modelica://GeneralRelativity.Visualization
 (<a href=\"modelica://GeneralRelativity.Visualization.writeFieldSlice\">writeFieldSlice</a>);</li>
 <li><code>sphere</code>: a reference sphere such as a horizon or planet
 (<a href=\"modelica://GeneralRelativity.Visualization.writeSphere\">writeSphere</a>);</li>
-<li><code>sample</code>: one point of a trajectory with scalars attached
-(<a href=\"modelica://GeneralRelativity.Visualization.writeSample\">writeSample</a>).</li>
+<li><code>track</code>: a named body with its colour and scalar labels
+(<a href=\"modelica://GeneralRelativity.Visualization.writeTrack\">writeTrack</a>);</li>
+<li><code>sample</code>: one point of a trajectory with scalars attached, optionally tagged
+with its track (<a href=\"modelica://GeneralRelativity.Visualization.writeSample\">writeSample</a>).
+The viewer animates every track against coordinate time <code>x[1]/c</code>.</li>
 </ul>
 <h4>Embedding surfaces</h4>
 <p>For a static spherically symmetric metric with <code>g<sub>&theta;&theta;</sub> = r&sup2;</code>

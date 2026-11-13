@@ -10,4 +10,15 @@ kretschmann
 raiseVector
 lowerVector
 innerProduct
+schouten
+weyl
+traceFreeRicci
+ricciSquared
+fullContraction
+gaussBonnet
+bivectorMatrix
+cubicInvariants
+weylCubed
 Curvature
+Invariants
+curvatureInvariants
