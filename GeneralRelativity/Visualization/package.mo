@@ -19,12 +19,28 @@ Kretschmann against radius (<a href=\"modelica://GeneralRelativity.Visualization
 (<a href=\"modelica://GeneralRelativity.Visualization.writeFieldSlice\">writeFieldSlice</a>);</li>
 <li><code>sphere</code>: a reference sphere such as a horizon or planet
 (<a href=\"modelica://GeneralRelativity.Visualization.writeSphere\">writeSphere</a>);</li>
+<li><code>slice</code> and <code>sliceField</code>: the equatorial plane of the metric sampled on a grid, with
+the lapse, the river speed, frame dragging and light-cone speeds of
+<a href=\"modelica://GeneralRelativity.Visualization.spacetimePointAt\">spacetimePointAt</a>
+(<a href=\"modelica://GeneralRelativity.Visualization.writeSpacetimeSlice\">writeSpacetimeSlice</a>);</li>
+<li><code>metric</code>: the metric family and parameters, for the ray tracer
+(<a href=\"modelica://GeneralRelativity.Visualization.writeMetric\">writeMetric</a>);</li>
+<li><code>view</code>: the style the viewer opens with and its options
+(<a href=\"modelica://GeneralRelativity.Visualization.writeView\">writeView</a>);</li>
 <li><code>track</code>: a named body with its colour and scalar labels
 (<a href=\"modelica://GeneralRelativity.Visualization.writeTrack\">writeTrack</a>);</li>
 <li><code>sample</code>: one point of a trajectory with scalars attached, optionally tagged
 with its track (<a href=\"modelica://GeneralRelativity.Visualization.writeSample\">writeSample</a>).
 The viewer animates every track against coordinate time <code>x[1]/c</code>.</li>
 </ul>
+<h4>Visualization styles</h4>
+<p>The viewer shows the same scene in interchangeable styles: <b>embedding</b> (3D, embedded
+equatorial plane), <b>river</b> (space flowing into the hole, Hamilton and Lisle's river model),
+<b>clocks</b> (a time-contracting grid of clocks running at the lapse), <b>spacetime</b> (a 2+1 diagram of
+worldlines with light cones) and <b>raytrace</b> (GPU ray tracing of null geodesics). The slice-based styles
+drop one spatial dimension. The easiest way to provide everything is one
+<a href=\"modelica://GeneralRelativity.Visualization.SceneRecorder\">SceneRecorder</a> component per
+simulation; <code>Visualization/threejs/README.md</code> lists the style options.</p>
 <h4>Embedding surfaces</h4>
 <p>For a static spherically symmetric metric with <code>g<sub>&theta;&theta;</sub> = r&sup2;</code>
 the equatorial slice <code>t = const, &theta; = &pi;/2</code> embeds in Euclidean

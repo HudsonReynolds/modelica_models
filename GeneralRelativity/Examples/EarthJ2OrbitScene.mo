@@ -8,6 +8,10 @@ model EarthJ2OrbitScene "Earth J2 orbit with the Three.js scene stream: Earth sp
 initial algorithm
   GeneralRelativity.Visualization.beginScene(GeneralRelativity.Visualization.scenePath(sceneFile, sceneDirectory), "Earth J2 orbit", "cartesian", R, "m", c);
   GeneralRelativity.Visualization.writeSphere(GeneralRelativity.Visualization.scenePath(sceneFile, sceneDirectory), "Earth", R, zeros(3), "#3b7dd8");
+  GeneralRelativity.Visualization.writeView(GeneralRelativity.Visualization.scenePath(sceneFile, sceneDirectory), "embedding");
+  // Weak-field Earth metric on the equatorial plane: clock lag about 7e-10, river about 4e-5 c; the viewer exaggerates both and says so.
+  GeneralRelativity.Visualization.writeSpacetimeSlice(GeneralRelativity.Visualization.scenePath(sceneFile, sceneDirectory),
+    GeneralRelativity.Metrics.earth, metricParameters, false, 3.0 * R, 61, R, 0.0);
   GeneralRelativity.Visualization.writeFieldSlice(GeneralRelativity.Visualization.scenePath(sceneFile, sceneDirectory), "tidal magnitude |Phi_,ij|", "xy", 0.0,
     sliceCoordinate, sliceCoordinate,
     GeneralRelativity.Visualization.tidalMagnitudeSlice(GeneralRelativity.Perturbation.Potentials.oblateJ2Gradient, p, 1.0, sliceCoordinate, sliceCoordinate, 0.0, R));

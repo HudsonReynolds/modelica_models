@@ -9,6 +9,10 @@ initial algorithm
   GeneralRelativity.Visualization.writeSphere(GeneralRelativity.Visualization.scenePath(sceneFile, sceneDirectory), "Earth", GeneralRelativity.Constants.R_earth, zeros(3), "#3b7dd8");
   GeneralRelativity.Visualization.writeSphere(GeneralRelativity.Visualization.scenePath(sceneFile, sceneDirectory), "Moon at t = 0", 1737.4e3,
     GeneralRelativity.Perturbation.Potentials.circularBodyPosition(0.0, moonDistance, moonRate, moonPhase0), "#bbbbbb");
+  GeneralRelativity.Visualization.writeView(GeneralRelativity.Visualization.scenePath(sceneFile, sceneDirectory), "embedding");
+  // Earth-Moon metric at t = 0 (the Moon moves, so this is a snapshot); the viewer exaggerates the weak field.
+  GeneralRelativity.Visualization.writeSpacetimeSlice(GeneralRelativity.Visualization.scenePath(sceneFile, sceneDirectory),
+    GeneralRelativity.Metrics.cislunar, metricParameters, false, 1.15 * moonDistance, 81, GeneralRelativity.Constants.R_earth, 0.0);
 algorithm
   when sample(0.0, sampleInterval) then
     GeneralRelativity.Visualization.writeSample(GeneralRelativity.Visualization.scenePath(sceneFile, sceneDirectory), time, {c * time, x[1], x[2], x[3]}, {jacobi - jacobi0, moonRange});

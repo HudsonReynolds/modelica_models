@@ -1,5 +1,5 @@
 within GeneralRelativity.Visualization;
-impure function writeEmbeddingSurface "Append the equatorial embedding surface of a static spherically symmetric metric, coloured by the Kretschmann scalar"
+impure function writeEmbeddingSurface "Append the equatorial embedding surface of a stationary axisymmetric metric, coloured by the Kretschmann scalar"
   input String fileName;
   input GeneralRelativity.Interfaces.MetricFunction metric "Metric in {ct, r, theta, phi}";
   input Real p[:] "Metric parameters";
@@ -24,6 +24,7 @@ protected
   Real riemann[4, 4, 4, 4];
   Real kretschmann;
   Real phi;
+  Real circumferentialRadius "R = sqrt(g_phiphi), the proper circumference over 2 pi";
   String row;
 algorithm
   z := 0.0;
@@ -39,19 +40,28 @@ algorithm
     Gamma := GeneralRelativity.Tensors.christoffel(gInv, dg);
     riemann := GeneralRelativity.Tensors.riemannLower(g, ddg, Gamma);
     kretschmann := GeneralRelativity.Tensors.kretschmann(gInv, riemann);
-    // dz/dr = sqrt(g_rr - 1), integrated by the trapezoidal rule from rMin.
-    slope := sqrt(max(g[2, 2] - 1.0, 0.0));
+    // Equatorial geometry ds^2 = g_rr dr^2 + g_phiphi dphi^2 embedded as dz^2 + dR^2 + R^2 dphi^2:
+    // R = sqrt(g_phiphi) and dz/dr = sqrt(g_rr - (dR/dr)^2), integrated by the trapezoidal rule from rMin.
+    // For Schwarzschild R = r and this is Flamm's sqrt(g_rr - 1).
+    circumferentialRadius := sqrt(g[4, 4]);
+    slope := sqrt(max(g[2, 2] - (dg[2, 4, 4] / (2.0 * circumferentialRadius))^2, 0.0));
     if i > 1 then
       z := z + 0.5 * (slope + slopePrevious) * (r - rPrevious);
     end if;
-    row := "{\"type\":\"surfaceRow\",\"r\":" + jsonNumber(r) + ",\"z\":" + jsonNumber(z)
+    row := "{\"type\":\"surfaceRow\",\"r\":" + jsonNumber(r) + ",\"R\":" + jsonNumber(circumferentialRadius) + ",\"z\":" + jsonNumber(z)
       + ",\"kretschmann\":" + jsonNumber(kretschmann) + ",\"nPhi\":" + String(nPhi) + "}";
     Modelica.Utilities.Streams.print(row, fileName);
     rPrevious := r;
     slopePrevious := slope;
   end for;
   annotation(Documentation(info="<html>
-<p>Each row is one radius; the viewer revolves it into <code>nPhi</code> vertices.
+<p>The equatorial plane <code>t = const, &theta; = &pi;/2</code> is embedded in Euclidean space as a
+surface of revolution with circumferential radius <code>R = &radic;g<sub>&phi;&phi;</sub></code> and height
+<code>dz/dr = &radic;(g<sub>rr</sub> &minus; (dR/dr)&sup2;)</code>, exact for any stationary axisymmetric metric
+whose equatorial plane has no <code>g<sub>r&phi;</sub></code> term (Schwarzschild, Reissner-Nordstr&ouml;m,
+Kerr); for Schwarzschild it is Flamm's paraboloid. Where <code>(dR/dr)&sup2; &gt; g<sub>rr</sub></code> the
+plane does not embed and the slope is clipped to zero.</p>
+<p>Each row is one radius; the viewer revolves it into <code>nPhi</code> vertices at radius <code>R</code>.
 The height starts at zero at <code>rMin</code>. The trapezoidal integration of
 <code>sqrt(g<sub>rr</sub> - 1)</code> is second order except near a horizon where
 the slope diverges like <code>(r - r<sub>s</sub>)<sup>-1/2</sup></code>; start a row or

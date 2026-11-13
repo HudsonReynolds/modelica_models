@@ -10,7 +10,9 @@ package Examples "Worked models: Schwarzschild orbit and curvature, Newton-Carta
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbitScene\">SchwarzschildOrbitScene</a>,
 <a href=\"modelica://GeneralRelativity.Examples.EarthJ2OrbitScene\">EarthJ2OrbitScene</a>,
 <a href=\"modelica://GeneralRelativity.Examples.CislunarOrbitScene\">CislunarOrbitScene</a></td>
-<td>The same orbits plus the Three.js scene stream (need <code>Modelica.Utilities</code> to link); the Schwarzschild scene animates the relativistic and Newton-Cartan bodies together.</td></tr>
+<td>The same orbits plus the Three.js scene stream (need <code>Modelica.Utilities</code> to link); every scene can be viewed as embedding, river, clocks, spacetime diagram or (with an analytic metric) ray tracer.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.KerrOrbitScene\">KerrOrbitScene</a></td>
+<td>Equatorial Kerr geodesic with a SceneRecorder: frame-dragged river, ray-traced asymmetric shadow.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildCurvature\">SchwarzschildCurvature</a></td>
 <td>Christoffel symbols against closed form, vacuum Ricci, Kretschmann, implied stress-energy.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.EarthJ2Orbit\">EarthJ2Orbit</a></td>

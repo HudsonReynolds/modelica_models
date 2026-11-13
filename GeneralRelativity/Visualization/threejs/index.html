@@ -11,31 +11,40 @@
     --text: #e6e9ef;
     --muted: #8a93a6;
     --accent: #5fb3ff;
+    --line: #222a38;
   }
   html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
   #layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: auto minmax(0, 1fr); height: 100vh; height: 100dvh; }
-  header { grid-column: 1 / 3; display: flex; gap: 12px; align-items: center; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid #222a38; flex-wrap: wrap; }
+  header { grid-column: 1 / 3; display: flex; gap: 10px 12px; align-items: center; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
   header h1 { font-size: 15px; margin: 0 8px 0 0; font-weight: 600; }
-  header label { color: var(--muted); }
-  header input[type=range] { width: 220px; }
+  header label { color: var(--muted); white-space: nowrap; }
+  header input[type=range] { width: 160px; vertical-align: middle; }
+  select, button { background: #222a38; color: var(--text); border: 1px solid #2f3a4e; border-radius: 4px; padding: 4px 8px; font: inherit; }
+  button { cursor: pointer; }
+  button:hover, select:hover { border-color: var(--accent); }
+  #styleSelect { font-weight: 600; }
   /* The canvas is absolutely positioned so its drawing-buffer size can never grow the layout. */
   #view { position: relative; min-height: 0; min-width: 0; overflow: hidden; }
   #view canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   #drop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); pointer-events: none; text-align: center; padding: 16px; }
-  aside { background: var(--panel); border-left: 1px solid #222a38; padding: 10px 12px; overflow: auto; min-height: 0; }
-  aside h2 { font-size: 13px; margin: 10px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  #banner { position: absolute; left: 12px; bottom: 10px; max-width: 70%; color: var(--muted); font-size: 12px; pointer-events: none; text-shadow: 0 0 4px #000; white-space: pre-line; }
+  aside { background: var(--panel); border-left: 1px solid var(--line); padding: 10px 12px; overflow: auto; min-height: 0; }
+  aside h2 { font-size: 13px; margin: 12px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
   aside canvas { width: 100%; background: #0f131b; border-radius: 4px; }
-  #readout, .track-readout { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre; }
+  #readout, .track-readout, #styleReadout { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre; }
+  #styleDescription, #styleNotes { color: var(--muted); font-size: 12px; margin: 2px 0 6px; }
+  #styleNotes { color: #f0c674; white-space: pre-line; }
+  .option { display: grid; grid-template-columns: 110px minmax(0, 1fr) 52px; gap: 6px; align-items: center; margin: 3px 0; font-size: 12px; }
+  .option input[type=range] { width: 100%; }
+  .option .value { font-family: ui-monospace, monospace; color: var(--muted); text-align: right; }
   .track { margin: 6px 0 10px; }
   .track-title { display: flex; align-items: center; gap: 6px; font-weight: 600; }
   .swatch { width: 12px; height: 12px; border-radius: 50%; flex: none; }
   .track-description { color: var(--muted); font-size: 12px; margin: 2px 0; }
-  button { background: #222a38; color: var(--text); border: 1px solid #2f3a4e; border-radius: 4px; padding: 4px 10px; cursor: pointer; }
-  button:hover { border-color: var(--accent); }
   @media (max-width: 800px) {
     #layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
     header { grid-column: 1; }
-    aside { border-left: none; border-top: 1px solid #222a38; max-height: 35vh; }
+    aside { border-left: none; border-top: 1px solid var(--line); max-height: 38vh; }
   }
 </style>
 <script type="importmap">
@@ -46,44 +55,60 @@
   }
 }
 </script>
+<!-- Visualization styles are plain scripts (not modules) so they load from disk; each registers itself in
+     window.GRStyles. Add a style by dropping a file in styles/ and listing it here. -->
+<script>window.GRStyles = [];</script>
+<script src="styles/embedding.js"></script>
+<script src="styles/river.js"></script>
+<script src="styles/clocks.js"></script>
+<script src="styles/spacetime.js"></script>
+<script src="styles/raytrace.js"></script>
 </head>
 <body>
 <div id="layout">
   <header>
     <h1>GeneralRelativity viewer</h1>
     <input type="file" id="file" accept=".ndjson,.json,.txt">
+    <label>style <select id="styleSelect"></select></label>
     <button id="play">Play</button>
     <label>t <input type="range" id="time" min="0" max="1000" value="0" step="1"></label>
     <label>speed <input type="range" id="speed" min="1" max="200" value="40" step="1"></label>
-    <label><input type="checkbox" id="showSurface" checked> surface</label>
-    <label><input type="checkbox" id="showField" checked> field</label>
     <label><input type="checkbox" id="showPath" checked> full path</label>
     <label><input type="checkbox" id="showTrail" checked> trail</label>
     <label><input type="checkbox" id="showLink" checked> link</label>
     <label><input type="checkbox" id="loop" checked> loop</label>
   </header>
-  <div id="view"><div id="drop">Open or drop a scene file written by GeneralRelativity.Visualization (for example schwarzschild_scene.ndjson).</div></div>
+  <div id="view">
+    <div id="drop">Open or drop a scene file written by GeneralRelativity.Visualization (for example schwarzschild_scene.ndjson).</div>
+    <div id="banner"></div>
+  </div>
   <aside>
     <h2>Scene</h2>
     <div id="readout">no scene loaded</div>
+    <h2>Style</h2>
+    <div id="styleDescription"></div>
+    <div id="styleOptions"></div>
+    <div id="styleNotes"></div>
+    <div id="styleReadout"></div>
     <h2>Bodies</h2>
     <div id="legend"></div>
-    <h2>Radial profile</h2>
-    <canvas id="profile" width="320" height="260"></canvas>
     <h2>Colour scale</h2>
     <canvas id="scale" width="320" height="36"></canvas>
+    <h2>Radial profile</h2>
+    <canvas id="profile" width="320" height="260"></canvas>
   </aside>
 </div>
 <!-- Inline so the page works when opened from disk: browsers block module src files over file://. -->
 <script type="module">
-// Viewer for GeneralRelativity.Visualization scene streams (newline-delimited JSON).
+// Core of the viewer for GeneralRelativity.Visualization scene streams (newline-delimited JSON):
+// parsing, the shared clock, bodies and their trails, the side panel, and the style plug-ins.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const view = document.getElementById('view');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
-view.appendChild(renderer.domElement);
+view.insertBefore(renderer.domElement, view.firstChild);
 
 const scene3 = new THREE.Scene();
 scene3.background = new THREE.Color(0x0b0e14);
@@ -95,33 +120,41 @@ const key = new THREE.DirectionalLight(0xffffff, 1.2);
 key.position.set(1, 2, 3);
 scene3.add(key);
 
-let scene = null;          // parsed scene
-let objects = [];          // THREE objects added for the current scene
-let tracks = [];           // animated bodies, one per track
-let link = null;           // line joining the first two bodies
-let playing = false;
-let clock = 0;             // coordinate time t = x[0]/c shown now
-let tStart = 0, tEnd = 0;
-let surfaceZ = null;       // function r -> z of the embedding, when a surface exists
-let sceneSize = 10;
-
 const ui = {
   file: document.getElementById('file'),
+  styleSelect: document.getElementById('styleSelect'),
   play: document.getElementById('play'),
   time: document.getElementById('time'),
   speed: document.getElementById('speed'),
-  showSurface: document.getElementById('showSurface'),
-  showField: document.getElementById('showField'),
   showPath: document.getElementById('showPath'),
   showTrail: document.getElementById('showTrail'),
   showLink: document.getElementById('showLink'),
   loop: document.getElementById('loop'),
   readout: document.getElementById('readout'),
   legend: document.getElementById('legend'),
+  styleDescription: document.getElementById('styleDescription'),
+  styleOptions: document.getElementById('styleOptions'),
+  styleNotes: document.getElementById('styleNotes'),
+  styleReadout: document.getElementById('styleReadout'),
   profile: document.getElementById('profile'),
   scale: document.getElementById('scale'),
   drop: document.getElementById('drop'),
+  banner: document.getElementById('banner'),
 };
+
+const STYLE_DEFS = (window.GRStyles || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+const DEFAULT_COLORS = ['#ffb454', '#7ee0a1', '#ff6b8a', '#5fb3ff', '#c792ea', '#f9e2af'];
+
+let data = null;            // parsed scene
+let styleDef = null;        // active style definition
+let style = null;           // active style instance
+const optionValues = {};    // style id -> { option id -> value }
+let tracks = [];            // core-managed bodies
+let tracksGroup = null;
+let link = null;
+let playing = false;
+let clock = 0, tStart = 0, tEnd = 0;
+let sceneSize = 10;
 
 function resize() {
   const w = Math.max(1, view.clientWidth), h = Math.max(1, view.clientHeight);
@@ -129,19 +162,20 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  if (style && style.resize) style.resize(w, h);
 }
 window.addEventListener('resize', resize);
 if ('ResizeObserver' in window) new ResizeObserver(resize).observe(view);
 resize();
 
-// --- colour map (viridis-like, perceptually ordered) ---------------------------------------
+// --- shared helpers given to styles ------------------------------------------------------------
 const stops = [
   [0.267, 0.005, 0.329], [0.283, 0.141, 0.458], [0.254, 0.265, 0.530], [0.207, 0.372, 0.553],
   [0.164, 0.471, 0.558], [0.128, 0.567, 0.551], [0.135, 0.659, 0.518], [0.267, 0.749, 0.441],
   [0.478, 0.821, 0.318], [0.741, 0.873, 0.150], [0.993, 0.906, 0.144],
 ];
 function colormap(t) {
-  t = Math.min(1, Math.max(0, t));
+  t = Math.min(1, Math.max(0, Number.isFinite(t) ? t : 0));
   const s = t * (stops.length - 1), i = Math.floor(s), f = s - i;
   const a = stops[i], b = stops[Math.min(i + 1, stops.length - 1)];
   return new THREE.Color(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f);
@@ -151,149 +185,85 @@ function logRange(values) {
   if (!finite.length) return [0, 1];
   return [Math.min(...finite), Math.max(...finite)];
 }
-function drawScale(lo, hi, label) {
-  const ctx = ui.scale.getContext('2d');
+function drawScale(lo, hi, label, map = colormap) {
+  const c2 = ui.scale.getContext('2d');
   const W = ui.scale.width, H = ui.scale.height;
-  ctx.clearRect(0, 0, W, H);
+  c2.clearRect(0, 0, W, H);
   for (let i = 0; i < W; i++) {
-    ctx.fillStyle = '#' + colormap(i / (W - 1)).getHexString();
-    ctx.fillRect(i, 0, 1, 18);
+    c2.fillStyle = '#' + map(i / (W - 1)).getHexString();
+    c2.fillRect(i, 0, 1, 18);
   }
-  ctx.fillStyle = '#e6e9ef';
-  ctx.font = '11px system-ui';
-  ctx.fillText(`log10 ${label}: ${lo.toFixed(2)}`, 2, 31);
-  const right = `${hi.toFixed(2)}`;
-  ctx.fillText(right, W - ctx.measureText(right).width - 2, 31);
+  c2.fillStyle = '#e6e9ef';
+  c2.font = '11px system-ui';
+  const left = `${label}: ${fmt(lo)}`, right = fmt(hi);
+  c2.fillText(left, 2, 31);
+  c2.fillText(right, W - c2.measureText(right).width - 2, 31);
+}
+function clearScale() {
+  ui.scale.getContext('2d').clearRect(0, 0, ui.scale.width, ui.scale.height);
+}
+function fmt(v) {
+  if (!Number.isFinite(v)) return String(v);
+  const a = Math.abs(v);
+  return (a !== 0 && (a < 1e-3 || a >= 1e5)) ? v.toExponential(3) : v.toPrecision(4);
 }
 
-function buildSurface(rows) {
-  if (!rows.length) return;
-  const nPhi = rows[0].nPhi;
-  const [lo, hi] = logRange(rows.map(r => r.kretschmann));
-  drawScale(lo, hi, 'Kretschmann');
-  const rs = rows.map(r => r.r), zs = rows.map(r => r.z);
-  surfaceZ = (r) => {
-    if (r <= rs[0]) return zs[0];
-    if (r >= rs[rs.length - 1]) return zs[zs.length - 1];
-    let i = 1;
-    while (rs[i] < r) i++;
-    const f = (r - rs[i - 1]) / (rs[i] - rs[i - 1]);
-    return zs[i - 1] + f * (zs[i] - zs[i - 1]);
+// Bilinear sampler of a slice field at plane coordinates (X, Y). With a mask field, any invalid corner
+// makes the result null.
+function sampler(slice, name, mask = null) {
+  const field = slice.fields[name];
+  const valid = mask ? slice.fields[mask] : null;
+  const u = slice.u, v = slice.v, nu = u.length, nv = v.length;
+  const du = (u[nu - 1] - u[0]) / (nu - 1), dv = (v[nv - 1] - v[0]) / (nv - 1);
+  return (X, Y) => {
+    if (!field) return null;
+    const fi = (X - u[0]) / du, fj = (Y - v[0]) / dv;
+    if (!(fi >= 0 && fj >= 0 && fi <= nu - 1 && fj <= nv - 1)) return null;
+    const i = Math.min(Math.floor(fi), nu - 2), j = Math.min(Math.floor(fj), nv - 2);
+    const a = fi - i, b = fj - j;
+    if (valid && (valid[i][j] < 0.5 || valid[i + 1][j] < 0.5 || valid[i][j + 1] < 0.5 || valid[i + 1][j + 1] < 0.5)) return null;
+    return (1 - a) * (1 - b) * field[i][j] + a * (1 - b) * field[i + 1][j] + (1 - a) * b * field[i][j + 1] + a * b * field[i + 1][j + 1];
   };
-  const positions = [], colors = [], indices = [];
-  rows.forEach((row, i) => {
-    const t = hi > lo ? (Math.log10(Math.max(row.kretschmann, 1e-300)) - lo) / (hi - lo) : 0.5;
-    const col = colormap(t);
-    for (let j = 0; j < nPhi; j++) {
-      const ph = 2 * Math.PI * j / nPhi;
-      positions.push(row.r * Math.cos(ph), row.z, -row.r * Math.sin(ph));
-      colors.push(col.r, col.g, col.b);
-    }
-  });
-  for (let i = 0; i < rows.length - 1; i++) {
-    for (let j = 0; j < nPhi; j++) {
-      const a = i * nPhi + j, b = i * nPhi + (j + 1) % nPhi, c = a + nPhi, d = b + nPhi;
-      indices.push(a, c, b, b, c, d);
-    }
+}
+
+// Scene coordinates -> Euclidean picture coordinates {X, Y, Z} (Z along the axis of the chart).
+function planeXYZ(x) {
+  if (data.header.chart === 'spherical') {
+    const r = x[1], th = x[2], ph = x[3];
+    return { X: r * Math.sin(th) * Math.cos(ph), Y: r * Math.sin(th) * Math.sin(ph), Z: r * Math.cos(th) };
   }
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  geom.setIndex(indices);
-  geom.computeVertexNormals();
-  const mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.8, metalness: 0.05 }));
-  mesh.name = 'surface';
-  const wire = new THREE.LineSegments(new THREE.WireframeGeometry(geom), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.08 }));
-  wire.name = 'surface';
-  scene3.add(mesh, wire);
-  objects.push(mesh, wire);
+  return { X: x[1], Y: x[2], Z: x[3] };
+}
+// Picture coordinates -> three.js world (y up).
+const toWorld = (X, Y, Z = 0) => new THREE.Vector3(X, Z, -Y);
+const timeOf = (sample) => sample.x[0] / (data.header.c || 1);
+
+function sceneExtent() {
+  const slice = data.slice;
+  if (slice) return Math.max(Math.abs(slice.u[0]), Math.abs(slice.u[slice.u.length - 1]));
+  if (data.rows.length) return Math.max(...data.rows.map(r => r.R ?? r.r));
+  return sceneSize / 2;
 }
 
-function buildField(field) {
-  const nu = field.u.length, nv = field.v.length;
-  const flat = field.values.flat();
-  const [lo, hi] = logRange(flat);
-  if (!scene.rows.length) drawScale(lo, hi, field.name);
-  const positions = [], colors = [], indices = [];
-  for (let i = 0; i < nu; i++) {
-    for (let j = 0; j < nv; j++) {
-      const u = field.u[i], v = field.v[j];
-      let p;
-      if (field.plane === 'xy') p = [u, v, field.offset];
-      else if (field.plane === 'xz') p = [u, field.offset, v];
-      else p = [field.offset, u, v];
-      positions.push(p[0], p[2], -p[1]);
-      const val = field.values[i][j];
-      const t = hi > lo ? (Math.log10(Math.max(val, 1e-300)) - lo) / (hi - lo) : 0.5;
-      const col = colormap(t);
-      colors.push(col.r, col.g, col.b);
-    }
-  }
-  for (let i = 0; i < nu - 1; i++) {
-    for (let j = 0; j < nv - 1; j++) {
-      const a = i * nv + j, b = a + 1, c = a + nv, d = c + 1;
-      indices.push(a, c, b, b, c, d);
-    }
-  }
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  geom.setIndex(indices);
-  const mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }));
-  mesh.name = 'field';
-  scene3.add(mesh);
-  objects.push(mesh);
+function makeCtx() {
+  return {
+    THREE, renderer, camera, controls, scene3,
+    data, sceneSize, extent: sceneExtent(),
+    get clock() { return clock; }, get tStart() { return tStart; }, get tEnd() { return tEnd; }, get playing() { return playing; },
+    referenceRadius: data.header.referenceRadius || 1,
+    options: optionValues[styleDef.id],
+    colormap, logRange, drawScale, clearScale, fmt, sampler, planeXYZ, toWorld, timeOf,
+    tracks: () => tracks,
+    bodiesNow: () => tracks.map(t => ({ name: t.spec.name || 'body', color: t.color, sample: t.now, position: t.position })),
+    setNotes: (text) => { ui.styleNotes.textContent = text || ''; },
+    setBanner: (text) => { ui.banner.textContent = text || ''; },
+  };
 }
 
-function buildSphere(s) {
-  const geom = new THREE.SphereGeometry(s.radius, 48, 32);
-  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(s.color || '#888888'), transparent: true, opacity: 0.55, roughness: 0.6 });
-  const mesh = new THREE.Mesh(geom, mat);
-  const c = s.centre || [0, 0, 0];
-  mesh.position.set(c[0], c[2], -c[1]);
-  scene3.add(mesh);
-  objects.push(mesh);
-}
-
-function drawProfile(profile) {
-  const ctx = ui.profile.getContext('2d');
-  const W = ui.profile.width, H = ui.profile.height;
-  ctx.clearRect(0, 0, W, H);
-  if (!profile) { ctx.fillStyle = '#8a93a6'; ctx.fillText('no profile in scene', 8, 20); return; }
-  const series = [
-    { key: 'gtt', color: '#5fb3ff', label: 'g_tt' },
-    { key: 'grr', color: '#ffb454', label: 'g_rr' },
-    { key: 'kretschmann', color: '#9cff8a', label: 'log10 K', transform: v => Math.log10(Math.max(v, 1e-300)) },
-    { key: 'ricciScalar', color: '#ff6b8a', label: 'R' },
-  ];
-  const r = profile.r, rMin = r[0], rMax = r[r.length - 1];
-  const pad = 28, plotH = (H - pad) / series.length;
-  series.forEach((s, idx) => {
-    const data = profile[s.key].map(s.transform || (v => v));
-    const lo = Math.min(...data), hi = Math.max(...data);
-    const top = idx * plotH + 8;
-    ctx.strokeStyle = s.color;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    data.forEach((v, i) => {
-      const x = pad + (W - pad - 6) * (r[i] - rMin) / (rMax - rMin);
-      const y = top + (plotH - 14) * (hi > lo ? 1 - (v - lo) / (hi - lo) : 0.5);
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    ctx.fillStyle = s.color;
-    ctx.font = '11px system-ui';
-    ctx.fillText(`${s.label} [${lo.toPrecision(3)}, ${hi.toPrecision(3)}]`, pad, top + plotH - 4);
-  });
-  ctx.fillStyle = '#8a93a6';
-  ctx.fillText(`r from ${rMin.toPrecision(3)} to ${rMax.toPrecision(3)}`, pad, H - 4);
-}
-
-// --- scene parsing ------------------------------------------------------------------------
-const DEFAULT_COLORS = ['#ffb454', '#7ee0a1', '#ff6b8a', '#5fb3ff', '#c792ea', '#f9e2af'];
-
+// --- scene parsing -----------------------------------------------------------------------------
 function parseScene(text) {
-  const out = { header: null, rows: [], profile: null, fields: [], spheres: [], tracks: new Map() };
+  const out = { header: null, rows: [], profile: null, fields: [], spheres: [], tracks: new Map(),
+                slices: new Map(), metric: null, view: null };
   const track = (name) => {
     if (!out.tracks.has(name)) out.tracks.set(name, { name, color: null, scalarNames: [], description: '', samples: [] });
     return out.tracks.get(name);
@@ -311,121 +281,142 @@ function parseScene(text) {
       case 'sphere': out.spheres.push(obj); break;
       case 'track': Object.assign(track(obj.name), { color: obj.color, scalarNames: obj.scalarNames || [], description: obj.description || '' }); break;
       case 'sample': track(obj.track || '').samples.push(obj); break;
+      case 'slice': out.slices.set(obj.name, Object.assign(obj, { fields: {} })); break;
+      case 'sliceField': if (out.slices.has(obj.slice)) out.slices.get(obj.slice).fields[obj.name] = obj.values; break;
+      case 'metric': out.metric = obj; break;
+      case 'view': out.view = obj; break;
       default: break;
     }
   }
+  if (!out.header) out.header = { name: 'scene', chart: 'cartesian', referenceRadius: 1, lengthUnit: '', c: 1 };
+  out.slice = out.slices.get('equator') || out.slices.values().next().value || null;
+  out.trackSpecs = [...out.tracks.values()].filter(t => t.samples.length);
+  for (const t of out.trackSpecs) t.samples.sort((a, b) => a.x[0] - b.x[0]);
   return out;
 }
 
-function clearScene() {
-  for (const o of objects) scene3.remove(o);
-  objects = [];
-  tracks = [];
+// --- bodies (managed by the core, placed by the active style) -------------------------------------
+function interpolateSample(tr, t) {
+  const times = tr.times;
+  let i;
+  if (t <= times[0]) i = 0;
+  else if (t >= times[times.length - 1]) i = times.length - 1;
+  else {
+    let lo = 0, hi = times.length - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (times[mid] <= t) lo = mid; else hi = mid; }
+    i = lo;
+  }
+  const j = Math.min(i + 1, times.length - 1);
+  const span = times[j] - times[i];
+  const f = span > 0 ? Math.min(1, Math.max(0, (t - times[i]) / span)) : 0;
+  const a = tr.spec.samples[i], b = tr.spec.samples[j];
+  return {
+    index: i,
+    x: a.x.map((v, k) => v + f * (b.x[k] - v)),
+    lambda: a.lambda + f * (b.lambda - a.lambda),
+    scalars: (a.scalars || []).map((v, k) => v + f * ((b.scalars || [])[k] - v)),
+  };
+}
+
+function disposeGroup(group) {
+  if (!group) return;
+  scene3.remove(group);
+  group.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
+  });
+}
+
+function buildTracks() {
+  disposeGroup(tracksGroup);
+  tracksGroup = new THREE.Group();
+  scene3.add(tracksGroup);
   link = null;
-  surfaceZ = null;
+  tracks = data.trackSpecs.map((spec, index) => {
+    const color = new THREE.Color(spec.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length]);
+    const times = spec.samples.map(timeOf);
+    const tr = { spec, color, times };
+    tr.now = interpolateSample(tr, clock);
+    const points = spec.samples.map(s => style.place(s.x, s, clock));
+    tr.points = points;
+    const full = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.22 }));
+    full.name = 'path';
+    // The trail has one spare vertex for the interpolated head.
+    const trail = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points.concat([points[0].clone()])), new THREE.LineBasicMaterial({ color }));
+    trail.name = 'trail';
+    const radius = style.bodyRadius ? style.bodyRadius() : Math.max(0.012 * sceneSize, 0.15 * (data.header.referenceRadius || 1));
+    const body = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 20), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.7, roughness: 0.3 }));
+    body.name = 'body';
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(radius * 2.2, 24, 16), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.18, depthWrite: false }));
+    halo.name = 'body';
+    tracksGroup.add(full, trail, body, halo);
+    Object.assign(tr, { full, trail, body, halo, position: points[0].clone() });
+    return tr;
+  });
+  if (tracks.length >= 2) {
+    const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+    link = new THREE.Line(geom, new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.01 * sceneSize, gapSize: 0.008 * sceneSize, transparent: true, opacity: 0.6 }));
+    link.name = 'link';
+    tracksGroup.add(link);
+  }
+  buildLegend();
+  applyVisibility();
+  updateBodies();
+}
+
+function buildLegend() {
   ui.legend.textContent = '';
-}
-
-function add(o, name) {
-  o.name = name;
-  scene3.add(o);
-  objects.push(o);
-  return o;
-}
-
-function toCartesian(x) {
-  // Scene coordinates -> viewer (y up). Spherical charts: {ct, r, theta, phi}.
-  if (scene.header.chart === 'spherical') {
-    const r = x[1], th = x[2], ph = x[3];
-    const px = r * Math.sin(th) * Math.cos(ph);
-    const py = r * Math.sin(th) * Math.sin(ph);
-    let pz = r * Math.cos(th);
-    // Equatorial bodies ride on the embedding surface, slightly above it.
-    if (surfaceZ && Math.abs(th - Math.PI / 2) < 1e-6) pz = surfaceZ(r) + 0.02 * scene.header.referenceRadius;
-    return new THREE.Vector3(px, pz, -py);
+  for (const tr of tracks) {
+    const entry = document.createElement('div');
+    entry.className = 'track';
+    entry.innerHTML = `<div class="track-title"><span class="swatch" style="background:#${tr.color.getHexString()}"></span><span></span></div>`
+      + `<div class="track-description"></div><div class="track-readout"></div>`;
+    entry.querySelector('.track-title span:last-child').textContent = tr.spec.name || 'body';
+    entry.querySelector('.track-description').textContent = tr.spec.description || '';
+    ui.legend.appendChild(entry);
+    tr.readout = entry.querySelector('.track-readout');
   }
-  return new THREE.Vector3(x[1], x[3], -x[2]);
-}
-
-const timeOf = (sample) => sample.x[0] / (scene.header.c || 1);
-
-// --- animated bodies ----------------------------------------------------------------------
-function buildTrack(spec, index) {
-  const samples = spec.samples.slice().sort((a, b) => timeOf(a) - timeOf(b));
-  if (!samples.length) return null;
-  const color = new THREE.Color(spec.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length]);
-  const points = samples.map(s => toCartesian(s.x));
-  const times = samples.map(timeOf);
-  const geomFull = new THREE.BufferGeometry().setFromPoints(points);
-  const full = add(new THREE.Line(geomFull, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.22 })), 'path');
-  // The trail shares the vertex buffer layout but draws only up to the current sample.
-  const geomTrail = new THREE.BufferGeometry().setFromPoints(points.concat([points[0].clone()]));
-  const trail = add(new THREE.Line(geomTrail, new THREE.LineBasicMaterial({ color })), 'trail');
-  const radius = Math.max(0.012 * sceneSize, 0.15 * scene.header.referenceRadius);
-  const body = add(new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 20),
-    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.7, roughness: 0.3 })), 'body');
-  const halo = add(new THREE.Mesh(new THREE.SphereGeometry(radius * 2.2, 24, 16),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.18, depthWrite: false })), 'body');
-  const label = spec.name || 'body';
-  const entry = document.createElement('div');
-  entry.className = 'track';
-  entry.innerHTML = `<div class="track-title"><span class="swatch" style="background:#${color.getHexString()}"></span><span></span></div>`
-    + `<div class="track-description"></div><div class="track-readout"></div>`;
-  entry.querySelector('.track-title span:last-child').textContent = label;
-  entry.querySelector('.track-description').textContent = spec.description || '';
-  ui.legend.appendChild(entry);
-  return { spec, samples, times, points, full, trail, body, halo, readout: entry.querySelector('.track-readout'), position: points[0].clone() };
-}
-
-function indexAt(times, t) {
-  // Largest i with times[i] <= t (binary search); clamps at both ends.
-  if (t <= times[0]) return 0;
-  if (t >= times[times.length - 1]) return times.length - 1;
-  let lo = 0, hi = times.length - 1;
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    if (times[mid] <= t) lo = mid; else hi = mid;
-  }
-  return lo;
-}
-
-function fmt(v) {
-  if (!Number.isFinite(v)) return String(v);
-  const a = Math.abs(v);
-  return (a !== 0 && (a < 1e-3 || a >= 1e5)) ? v.toExponential(4) : v.toPrecision(6);
 }
 
 function updateBodies() {
-  const h = scene.header;
+  const h = data.header;
   for (const tr of tracks) {
-    const i = indexAt(tr.times, clock);
-    const j = Math.min(i + 1, tr.samples.length - 1);
-    const span = tr.times[j] - tr.times[i];
-    const f = span > 0 ? Math.min(1, Math.max(0, (clock - tr.times[i]) / span)) : 0;
-    tr.position.copy(tr.points[i]).lerp(tr.points[j], f);
+    tr.now = interpolateSample(tr, clock);
+    const i = tr.now.index;
+    if (style.dynamicPlacement) {
+      // Placement depends on the current clock (e.g. a sinking time sheet): refresh the whole path.
+      const fullAttr = tr.full.geometry.getAttribute('position');
+      const trailAttr = tr.trail.geometry.getAttribute('position');
+      tr.spec.samples.forEach((s, k) => {
+        const p = style.place(s.x, s, clock);
+        tr.points[k] = p;
+        fullAttr.setXYZ(k, p.x, p.y, p.z);
+        trailAttr.setXYZ(k, p.x, p.y, p.z);
+      });
+      fullAttr.needsUpdate = true;
+      tr.lastHead = undefined;
+    }
+    tr.position.copy(style.place(tr.now.x, tr.now, clock));
     tr.body.position.copy(tr.position);
     tr.halo.position.copy(tr.position);
-    // Trail: samples 0..i plus the interpolated head, written into the spare last vertex.
     const attr = tr.trail.geometry.getAttribute('position');
-    attr.setXYZ(i + 1, tr.position.x, tr.position.y, tr.position.z);
-    // Restore the vertex the head overwrote on an earlier frame.
+    // Restore the vertex the head overwrote on an earlier frame, then write the new head.
     if (tr.lastHead !== undefined && tr.lastHead !== i + 1 && tr.lastHead < tr.points.length) {
       const p = tr.points[tr.lastHead];
       attr.setXYZ(tr.lastHead, p.x, p.y, p.z);
     }
+    attr.setXYZ(i + 1, tr.position.x, tr.position.y, tr.position.z);
     tr.lastHead = i + 1;
     attr.needsUpdate = true;
     tr.trail.geometry.setDrawRange(0, i + 2);
-    const s = tr.samples[i];
+    const s = tr.now;
     const lines = [`lambda ${fmt(s.lambda)}`];
-    if (h.chart === 'spherical') {
-      lines.push(`r      ${fmt(s.x[1])}`, `phi    ${fmt(s.x[3])}`);
-    } else {
-      lines.push(`x      ${fmt(s.x[1])}`, `y      ${fmt(s.x[2])}`, `z      ${fmt(s.x[3])}`);
-    }
-    (s.scalars || []).forEach((v, k) => {
-      const name = tr.spec.scalarNames[k] || `scalar${k + 1}`;
-      lines.push(`${name.padEnd(6)} ${fmt(v)}`);
+    if (h.chart === 'spherical') lines.push(`r      ${fmt(s.x[1])}`, `phi    ${fmt(s.x[3])}`);
+    else lines.push(`x      ${fmt(s.x[1])}`, `y      ${fmt(s.x[2])}`, `z      ${fmt(s.x[3])}`);
+    s.scalars.forEach((v, k) => {
+      const name = tr.spec.scalarNames[k];
+      if (name === '') return;
+      lines.push(`${(name || `scalar${k + 1}`).padEnd(6)} ${fmt(v)}`);
     });
     tr.readout.textContent = lines.join('\n');
   }
@@ -434,66 +425,196 @@ function updateBodies() {
     attr.setXYZ(0, tracks[0].position.x, tracks[0].position.y, tracks[0].position.z);
     attr.setXYZ(1, tracks[1].position.x, tracks[1].position.y, tracks[1].position.z);
     attr.needsUpdate = true;
+    link.computeLineDistances();
   }
   ui.time.value = String(tEnd > tStart ? Math.round(1000 * (clock - tStart) / (tEnd - tStart)) : 0);
-  const lines = [`${h.name}`, `chart ${h.chart}, lengths in ${h.lengthUnit}`, `t      ${fmt(clock)}`];
-  if (tracks.length >= 2) lines.push(`gap    ${fmt(tracks[0].position.distanceTo(tracks[1].position))} (viewer units)`);
-  ui.readout.textContent = lines.join('\n');
-}
-
-function buildTracks(specs) {
-  tracks = specs.map(buildTrack).filter(Boolean);
-  if (!tracks.length) return;
-  tStart = Math.min(...tracks.map(t => t.times[0]));
-  tEnd = Math.max(...tracks.map(t => t.times[t.times.length - 1]));
-  clock = tStart;
-  if (tracks.length >= 2) {
-    const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
-    link = add(new THREE.Line(geom, new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.01 * sceneSize, gapSize: 0.008 * sceneSize, transparent: true, opacity: 0.6 })), 'link');
-  }
-  updateBodies();
-  if (link) link.computeLineDistances();
-}
-
-function loadScene(text) {
-  clearScene();
-  scene = parseScene(text);
-  if (!scene.header) {
-    scene.header = { name: 'scene', chart: 'cartesian', referenceRadius: 1, lengthUnit: '', c: 1 };
-  }
-  ui.drop.style.display = 'none';
-  buildSurface(scene.rows);
-  scene.fields.forEach(buildField);
-  scene.spheres.forEach(buildSphere);
-  // Size bodies from the static content plus the raw sample extent.
-  const box = new THREE.Box3();
-  objects.forEach(o => { if (o.geometry) box.expandByObject(o); });
-  for (const t of scene.tracks.values()) for (const s of t.samples) box.expandByPoint(toCartesian(s.x));
-  sceneSize = box.isEmpty() ? 10 : box.getSize(new THREE.Vector3()).length();
-  buildTracks([...scene.tracks.values()]);
-  drawProfile(scene.profile);
-  // Frame the view on the content.
-  const centre = box.isEmpty() ? new THREE.Vector3() : box.getCenter(new THREE.Vector3());
-  camera.near = sceneSize / 1000;
-  camera.far = sceneSize * 100;
-  camera.updateProjectionMatrix();
-  camera.position.copy(centre).add(new THREE.Vector3(0.6, 0.75, 0.9).multiplyScalar(sceneSize * 0.7));
-  controls.target.copy(centre);
-  controls.update();
-  if (!tracks.length) ui.readout.textContent = `${scene.header.name}\nchart ${scene.header.chart}\n${scene.rows.length} surface rows, ${scene.fields.length} fields, ${scene.spheres.length} spheres`;
-  applyVisibility();
-  // Start the animation as soon as a trajectory is loaded.
-  setPlaying(tracks.length > 0);
+  ui.readout.textContent = [`${h.name}`, `chart ${h.chart}, lengths in ${h.lengthUnit}`, `t      ${fmt(clock)}`].join('\n');
+  ui.styleReadout.textContent = style.readout ? style.readout().join('\n') : '';
 }
 
 function applyVisibility() {
-  for (const o of objects) {
-    if (o.name === 'surface') o.visible = ui.showSurface.checked;
-    if (o.name === 'field') o.visible = ui.showField.checked;
+  if (!tracksGroup) return;
+  const hideBodies = style && style.hidesBodies;
+  tracksGroup.traverse(o => {
     if (o.name === 'path') o.visible = ui.showPath.checked;
     if (o.name === 'trail') o.visible = ui.showTrail.checked;
     if (o.name === 'link') o.visible = ui.showLink.checked;
+    if (o.name === 'body') o.visible = !hideBodies;
+  });
+}
+
+// --- styles ------------------------------------------------------------------------------------
+function unavailable(def) {
+  return data ? (def.available ? def.available(data) : null) : 'load a scene first';
+}
+
+function populateStyleSelect() {
+  ui.styleSelect.textContent = '';
+  for (const def of STYLE_DEFS) {
+    const reason = unavailable(def);
+    const opt = document.createElement('option');
+    opt.value = def.id;
+    opt.textContent = def.label + (reason && data ? ' (unavailable)' : '');
+    opt.disabled = !!reason && !!data;
+    opt.title = reason || def.description || '';
+    ui.styleSelect.appendChild(opt);
   }
+}
+
+function defaultsFor(def) {
+  if (!optionValues[def.id]) {
+    optionValues[def.id] = {};
+    for (const o of def.options || []) optionValues[def.id][o.id] = o.value;
+  }
+  return optionValues[def.id];
+}
+
+function buildOptionsUI() {
+  ui.styleOptions.textContent = '';
+  for (const o of styleDef.options || []) {
+    const row = document.createElement('div');
+    row.className = 'option';
+    const label = document.createElement('label');
+    label.textContent = o.label;
+    label.title = o.help || '';
+    const value = document.createElement('span');
+    value.className = 'value';
+    let input;
+    const current = optionValues[styleDef.id][o.id];
+    if (o.type === 'checkbox') {
+      input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = !!current;
+      input.addEventListener('change', () => setOption(o, input.checked ? 1 : 0));
+    } else if (o.type === 'select') {
+      input = document.createElement('select');
+      const choices = typeof o.choices === 'function' ? o.choices(data) : o.choices;
+      choices.forEach(ch => {
+        const opt = document.createElement('option');
+        opt.value = String(ch.value);
+        opt.textContent = ch.label;
+        input.appendChild(opt);
+      });
+      input.value = String(current);
+      input.addEventListener('change', () => setOption(o, Number(input.value)));
+    } else {
+      input = document.createElement('input');
+      input.type = 'range';
+      input.min = o.min; input.max = o.max; input.step = o.step; input.value = current;
+      value.textContent = fmt(Number(current));
+      input.addEventListener('input', () => { value.textContent = fmt(Number(input.value)); setOption(o, Number(input.value), true); });
+      input.addEventListener('change', () => setOption(o, Number(input.value)));
+    }
+    input.title = o.help || '';
+    row.append(label, input, value);
+    ui.styleOptions.appendChild(row);
+  }
+}
+
+function setOption(o, v, live = false) {
+  optionValues[styleDef.id][o.id] = v;
+  // A style can apply an option in place; otherwise it is rebuilt (sliders: on release).
+  if (style.onOption && style.onOption(o.id, v)) return;
+  if (!live) activateStyle(styleDef.id, false);
+}
+
+function activateStyle(id, resetCamera = true) {
+  const def = STYLE_DEFS.find(d => d.id === id && !unavailable(d)) || STYLE_DEFS.find(d => !unavailable(d));
+  if (!def) return;
+  if (style && style.dispose) style.dispose();
+  if (style && style.group) disposeGroup(style.group);
+  styleDef = def;
+  defaultsFor(def);
+  ui.styleSelect.value = def.id;
+  ui.styleDescription.textContent = def.description || '';
+  ui.styleNotes.textContent = '';
+  ui.banner.textContent = '';
+  clearScale();
+  style = def.create(makeCtx());
+  if (style.group) scene3.add(style.group);
+  buildOptionsUI();
+  buildTracks();
+  if (resetCamera) frameCamera();
+}
+
+function frameCamera() {
+  const extent = sceneExtent();
+  const pref = style.camera ? style.camera() : null;
+  const target = pref && pref.target ? pref.target : new THREE.Vector3();
+  const position = pref && pref.position ? pref.position : new THREE.Vector3(0.6, 0.75, 0.9).multiplyScalar(extent * 1.6);
+  camera.near = Math.max(extent / 2000, 1e-9);
+  camera.far = extent * 200;
+  camera.updateProjectionMatrix();
+  camera.position.copy(position);
+  controls.target.copy(target);
+  controls.update();
+}
+
+// --- loading ---------------------------------------------------------------------------------------
+function loadScene(text) {
+  if (style && style.dispose) style.dispose();
+  if (style && style.group) disposeGroup(style.group);
+  style = null;
+  data = parseScene(text);
+  ui.drop.style.display = 'none';
+  let lo = Infinity, hi = -Infinity;
+  for (const t of data.trackSpecs) for (const s of t.samples) { const v = timeOf(s); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  tStart = Number.isFinite(lo) ? lo : 0;
+  tEnd = Number.isFinite(hi) ? hi : 0;
+  clock = tStart;
+  // Characteristic size: the slice, the embedding, the spheres and the samples.
+  let size = 0;
+  if (data.slice) size = Math.max(size, 2 * sceneExtent());
+  for (const r of data.rows) size = Math.max(size, 2 * (r.R ?? r.r));
+  for (const s of data.spheres) size = Math.max(size, 2 * s.radius);
+  for (const t of data.trackSpecs) for (const s of t.samples) {
+    const p = planeXYZ(s.x);
+    size = Math.max(size, 2 * Math.hypot(p.X, p.Y, p.Z));
+  }
+  sceneSize = size || 10;
+  drawProfile(data.profile);
+  populateStyleSelect();
+  const wanted = data.view && data.view.style;
+  if (data.view && data.view.options) {
+    const def = STYLE_DEFS.find(d => d.id === wanted);
+    if (def) Object.assign(defaultsFor(def), data.view.options);
+  }
+  activateStyle(wanted || 'embedding');
+  setPlaying(data.trackSpecs.length > 0);
+}
+
+function drawProfile(profile) {
+  const c2 = ui.profile.getContext('2d');
+  const W = ui.profile.width, H = ui.profile.height;
+  c2.clearRect(0, 0, W, H);
+  c2.font = '11px system-ui';
+  if (!profile) { c2.fillStyle = '#8a93a6'; c2.fillText('no profile in scene', 8, 20); return; }
+  const series = [
+    { key: 'gtt', color: '#5fb3ff', label: 'g_tt' },
+    { key: 'grr', color: '#ffb454', label: 'g_rr' },
+    { key: 'kretschmann', color: '#9cff8a', label: 'log10 K', transform: v => Math.log10(Math.max(v, 1e-300)) },
+    { key: 'ricciScalar', color: '#ff6b8a', label: 'R' },
+  ];
+  const r = profile.r, rMin = r[0], rMax = r[r.length - 1];
+  const pad = 28, plotH = (H - pad) / series.length;
+  series.forEach((s, idx) => {
+    const values = profile[s.key].map(s.transform || (v => v));
+    const lo = Math.min(...values), hi = Math.max(...values);
+    const top = idx * plotH + 8;
+    c2.strokeStyle = s.color;
+    c2.lineWidth = 1.5;
+    c2.beginPath();
+    values.forEach((v, i) => {
+      const x = pad + (W - pad - 6) * (r[i] - rMin) / (rMax - rMin);
+      const y = top + (plotH - 14) * (hi > lo ? 1 - (v - lo) / (hi - lo) : 0.5);
+      if (i === 0) c2.moveTo(x, y); else c2.lineTo(x, y);
+    });
+    c2.stroke();
+    c2.fillStyle = s.color;
+    c2.fillText(`${s.label} [${lo.toPrecision(3)}, ${hi.toPrecision(3)}]`, pad, top + plotH - 4);
+  });
+  c2.fillStyle = '#8a93a6';
+  c2.fillText(`r from ${rMin.toPrecision(3)} to ${rMax.toPrecision(3)}`, pad, H - 4);
 }
 
 function setPlaying(on) {
@@ -509,23 +630,31 @@ ui.file.addEventListener('change', e => {
   e.preventDefault();
   if (type === 'drop' && e.dataTransfer.files[0]) e.dataTransfer.files[0].text().then(loadScene);
 }));
+ui.styleSelect.addEventListener('change', () => { if (data) activateStyle(ui.styleSelect.value); });
 ui.play.addEventListener('click', () => {
   if (!playing && clock >= tEnd) clock = tStart;
   setPlaying(!playing);
 });
 ui.time.addEventListener('input', () => {
-  if (!tracks.length) return;
+  if (!data) return;
   clock = tStart + (tEnd - tStart) * Number(ui.time.value) / 1000;
   updateBodies();
 });
-[ui.showSurface, ui.showField, ui.showPath, ui.showTrail, ui.showLink].forEach(el => el.addEventListener('change', applyVisibility));
+[ui.showPath, ui.showTrail, ui.showLink].forEach(el => el.addEventListener('change', applyVisibility));
+
+function renderFrame(dt) {
+  if (data && style && style.update) style.update(clock, dt);
+  controls.update();
+  if (style && style.render) style.render(renderer, camera, scene3);
+  else renderer.render(scene3, camera);
+}
 
 let last = performance.now();
 function animate(now) {
   requestAnimationFrame(animate);
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (playing && tracks.length && tEnd > tStart) {
+  if (data && style && playing && tracks.length && tEnd > tStart) {
     // At the default speed of 40 the whole run plays in about a minute.
     clock += dt * (tEnd - tStart) / 60 * Number(ui.speed.value) / 40;
     if (clock >= tEnd) {
@@ -533,10 +662,18 @@ function animate(now) {
     }
     updateBodies();
   }
-  controls.update();
-  renderer.render(scene3, camera);
+  renderFrame(dt);
 }
+populateStyleSelect();
 requestAnimationFrame(animate);
+// Automation hook (used by the regression screenshots): drive the viewer without the file picker.
+window.GRViewer = {
+  loadScene, activateStyle, setPlaying, renderFrame,
+  setClock: (t) => { clock = t; updateBodies(); },
+  setOption: (id, v) => { const o = (styleDef.options || []).find(x => x.id === id); if (o) setOption(o, v); },
+  get clock() { return clock; }, get tStart() { return tStart; }, get tEnd() { return tEnd; },
+  get style() { return style; }, renderer, camera, controls,
+};
 </script>
 </body>
 </html>

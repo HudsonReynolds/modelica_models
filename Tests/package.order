@@ -53,6 +53,7 @@ GeneralRelativityCurvatureTests
 GeneralRelativityGeometryTests
 GeneralRelativityConnectionTests
 GeneralRelativityMetricTests
+GeneralRelativityVisualizationTests
 MultirotorInnerLoopTests
 Cubs2EstimatorTests
 DynamicsTests

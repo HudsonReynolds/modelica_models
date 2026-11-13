@@ -71,7 +71,7 @@ caller-chosen step per coordinate
 <td><a href=\"modelica://GeneralRelativity.Numerical\">Numerical</a></td></tr>
 <tr><td>Spherical harmonics, Clebsch-Gordan and Wigner 3j coefficients, Gaunt integrals</td>
 <td><a href=\"modelica://GeneralRelativity.Harmonics\">Harmonics</a></td></tr>
-<tr><td>Embedding surfaces, curvature fields and the Three.js scene stream</td>
+<tr><td>Scene stream for the Three.js viewer and its styles: embedding surface, river model, clock grid, 2+1 spacetime diagram, ray tracer; a reusable SceneRecorder</td>
 <td><a href=\"modelica://GeneralRelativity.Visualization\">Visualization</a></td></tr>
 <tr><td>Schwarzschild orbit against Newton-Cartan, curvature, Earth J2, cislunar, Poisson, constant-density and polytropic stars, wave pulse</td>
 <td><a href=\"modelica://GeneralRelativity.Examples\">Examples</a></td></tr>
