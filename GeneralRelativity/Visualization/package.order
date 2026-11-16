@@ -13,6 +13,7 @@ writeSliceField
 writeSpacetimeSlice
 writeMetric
 writeView
+writeLens
 writeTrack
 writeSample
 tidalMagnitudeSlice

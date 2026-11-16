@@ -15,6 +15,10 @@ package Examples "Worked models: Schwarzschild orbit and curvature, Newton-Carta
 <td>Equatorial Kerr geodesic with a SceneRecorder: frame-dragged river, ray-traced asymmetric shadow.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.TwinParadox\">TwinParadox</a></td>
 <td>Twin paradox in Minkowski space with constant proper acceleration; ages checked against hyperbolic motion; interactive diagram in the viewer.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.LightDeflection\">LightDeflection</a></td>
+<td>A Schwarzschild null geodesic's bending angle against 4GM/(c&sup2;b) and its higher orders.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.GalaxyLensing\">GalaxyLensing</a></td>
+<td>Galaxy-scale strong lensing: distances, Einstein radii, a microlensing light curve; interactive lensed sky in the viewer.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildCurvature\">SchwarzschildCurvature</a></td>
 <td>Christoffel symbols against closed form, vacuum Ricci, Kretschmann, implied stress-energy.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.EarthJ2Orbit\">EarthJ2Orbit</a></td>

@@ -10,7 +10,7 @@
   description: 'Space flows inward at the speed of free fall from infinity (river model). Streaks move with the flowing space; light flashes expand at c relative to it, so inside the horizon even light is swept in. Equatorial plane only.',
   options: [
     { id: 'tracers', label: 'tracers', type: 'range', min: 200, max: 6000, step: 100, value: 2500 },
-    { id: 'flow', label: 'flow rate', type: 'range', min: 0.1, max: 4, step: 0.1, value: 1, help: 'Animation rate of the river; at 1, light crosses 1/8 of the view per second' },
+    { id: 'flow', label: 'flash speed', type: 'range', min: 0.1, max: 4, step: 0.1, value: 1, help: 'Slow-motion rate of the light flashes; at 1, light crosses 1/8 of the view per second. The streaks and bodies follow the simulation clock.' },
     { id: 'flashes', label: 'light flashes', type: 'checkbox', value: 1 },
     { id: 'rings', label: 'flash rings', type: 'range', min: 1, max: 10, step: 1, value: 5, help: 'Rings of flash sources' },
     { id: 'map', label: 'speed map', type: 'checkbox', value: 1 },
@@ -38,11 +38,17 @@
     }));
     vOuter = vMax;
     // Weak fields (Earth: 4e-5 c) are exaggerated so the flow is visible; strong fields are drawn true to c.
-    const boost = vOuter > 0 && vOuter < 0.2 ? 0.25 / vOuter : 1;
-    const colourTop = boost > 1 ? vOuter : Math.min(Math.max(vMax, 1.2), 2.0);
+    // The streaks move on the simulation clock in free-fall time, so speeds are true (no exaggeration):
+    // even for the Earth the river (escape speed) is comparable with the orbital speed.
+    const boost = 1;
+    const clockT = ctx.freeFallClock();
+    const cLight = data.header.c || 1;
+    const colourTop = vMax < 0.2 ? vMax : Math.min(Math.max(vMax, 1.2), 2.0);
     ctx.drawScale(0, colourTop, 'river speed / c');
     const notes = [];
-    if (boost > 1) notes.push(`Weak field: river speeds exaggerated x${boost.toPrecision(3)} (fastest ${vOuter.toExponential(2)} c); light flashes are not.`);
+    notes.push(clockT
+      ? 'Clock: free-fall time T = t + int (v / c_r) dr, in which the river carries a body dropped from rest far away exactly with the streaks (Gullstrand-Painleve time for Schwarzschild). Light flashes run in slow motion.'
+      : 'The scene has no light-cone data, so the clock is coordinate time t: streaks and bodies are not on a common clock.');
     if (vMax > 1) notes.push('White contour: the river reaches c (horizon; static limit for a spinning hole).');
     ctx.setNotes(notes.join('\n'));
 
@@ -181,9 +187,20 @@
       return [x + h * tmp2.x, y + h * tmp2.y];
     };
 
-    function step(dt) {
-      const h = dt * options.flow * extent / 8;   // ct advanced this frame
-      flowTime += h;
+    let lastClock = null, hSmooth = 0;
+    function step(dt, clock) {
+      // Streaks: the c * (clock change) of the simulation (display length per unit ct times ct).
+      let h = 0;
+      if (lastClock !== null && clock !== undefined) {
+        const d = clock - lastClock;
+        if (d < 0 || d > 0.25 * Math.max(ctx.tEnd - ctx.tStart, 1e-30)) { for (let k = 0; k < n; k++) spawn(k, true); }
+        else h = cLight * d;
+      }
+      if (clock !== undefined) lastClock = clock;
+      if (h > 0) hSmooth = 0.85 * hSmooth + 0.15 * h;
+      // Flashes: their own slow-motion time.
+      const hf = dt * options.flow * extent / 8;
+      flowTime += hf;
       const lift = 0.006 * extent;
       for (let k = 0; k < n; k++) {
         let moved = h > 0 ? advect(px[k], py[k], h) : [px[k], py[k]];
@@ -193,7 +210,9 @@
         const speed = vel ? Math.hypot(vel.x, vel.y) / boost : 0;
         // Streak = the displacement over the last 0.3 s of animation, capped.
         const ux = vel && speed > 0 ? vel.x / (speed * boost) : 0, uy = vel && speed > 0 ? vel.y / (speed * boost) : 0;
-        const tail = Math.min(0.08 * extent, speed * boost * 0.3 * options.flow * extent / 8);
+        // Streak = the displacement over the last few frames of simulation time, capped.
+        // (At least a short dash proportional to the speed, so a paused view still shows the flow.)
+        const tail = Math.min(0.08 * extent, Math.max(speed * 3 * hSmooth, 0.03 * extent * speed / Math.max(colourTop, 1e-30)));
         const o = k * 6;
         streakPos[o] = px[k] - ux * tail; streakPos[o + 1] = lift; streakPos[o + 2] = -(py[k] - uy * tail);
         streakPos[o + 3] = px[k]; streakPos[o + 4] = lift; streakPos[o + 5] = -py[k];
@@ -208,10 +227,10 @@
       if (options.flashes) {
         let o = 0;
         for (const s of sources) {
-          s.age += h;
+          s.age += hf;
           if (s.age >= period) { s.age = s.age % period; s.cx = s.X; s.cy = s.Y; s.alive = true; }
-          else if (s.alive && h > 0) {
-            const moved = advect(s.cx, s.cy, h);
+          else if (s.alive && hf > 0) {
+            const moved = advect(s.cx, s.cy, hf);
             if (moved) { s.cx = moved[0]; s.cy = moved[1]; } else s.alive = false;
           }
           const radius = s.age;   // light: c = 1 in display length per ct
@@ -236,13 +255,16 @@
         const p = ctx.planeXYZ(x);
         return ctx.toWorld(p.X, p.Y, 0.012 * extent);
       },
-      update(clock, dt) { step(dt); },
+      timeOf: clockT ? clockT.timeOf : undefined,
+      update(clock, dt) { step(dt, clock); },
+      clockLabel: clockT ? 'T' : 't',
       camera() {
         return { position: ctx.toWorld(0, -0.75 * extent, 1.7 * extent), target: new THREE.Vector3(0, 0, 0) };
       },
       readout() {
         const lines = [];
         for (const b of ctx.bodiesNow()) {
+          if (b.hidden) continue;
           const p = ctx.planeXYZ(b.sample.x);
           const v = river(p.X, p.Y);
           if (v !== null) lines.push(`${b.name}: space flows in at ${ctx.fmt(v)} c`);

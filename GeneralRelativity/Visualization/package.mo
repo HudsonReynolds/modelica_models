@@ -37,7 +37,8 @@ The viewer animates every track against coordinate time <code>x[1]/c</code>.</li
 <p>The viewer shows the same scene in interchangeable styles: <b>embedding</b> (3D, embedded
 equatorial plane), <b>river</b> (space flowing into the hole, Hamilton and Lisle's river model),
 <b>river3d</b> (the same flow as a 3D grid of falling shells), <b>clocks</b> (a time-contracting grid of clocks running at the lapse), <b>spacetime</b> (a 2+1 diagram of
-worldlines with light cones) <b>raytrace</b> (GPU ray tracing of null geodesics) and <b>twins</b> (an interactive twin-paradox
+worldlines with light cones) <b>raytrace</b> (GPU ray tracing of null geodesics), <b>lensing</b> (a telescope-like image of
+galaxies lensed by a foreground galaxy, from <a href=\"modelica://GeneralRelativity.Visualization.writeLens\">writeLens</a>) and <b>twins</b> (an interactive twin-paradox
 Minkowski diagram). The slice-based styles
 drop one spatial dimension. The easiest way to provide everything is one
 <a href=\"modelica://GeneralRelativity.Visualization.SceneRecorder\">SceneRecorder</a> component per

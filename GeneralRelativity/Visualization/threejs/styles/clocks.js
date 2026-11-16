@@ -195,7 +195,8 @@
       const bodies = ctx.bodiesNow();
       bodyClocks.forEach((bc, q) => {
         const b = bodies[q];
-        if (!b || !b.position) return;
+        bc.group.visible = !!b && !b.hidden;
+        if (!b || !b.position || b.hidden) return;
         bc.group.position.copy(b.position);
         bc.group.scale.setScalar(bodyFaceR);
         const ang = handAngle(b.sample.lambda - bc.lambda0, t);
@@ -225,6 +226,7 @@
         const t = ctx.clock, lines = [];
         lines.push(`deepest clock: 1 - alpha = ${ctx.fmt(lagMax)}, has lost ${ctx.fmt(lagMax * progress(t))}`);
         for (const b of ctx.bodiesNow()) {
+          if (b.hidden) continue;
           const own = b.sample.lambda - (bodyClocks[ctx.bodiesNow().indexOf(b)] || { lambda0: 0 }).lambda0;
           lines.push(`${b.name}: own time ${ctx.fmt(own)}, behind far clocks by ${ctx.fmt(progress(t) - own)}`);
         }

@@ -6,6 +6,7 @@ model SchwarzschildOrbitScene "Schwarzschild and Newton-Cartan orbits recorded f
   parameter String style = "river" "Style the viewer opens with; every style can be chosen in the viewer"
     annotation(choices(choice = "\"embedding\"", choice = "\"river\"", choice = "\"clocks\"", choice = "\"spacetime\"", choice = "\"raytrace\""));
   parameter Real sampleInterval = 1.0 "Proper time between scene samples";
+  parameter Boolean showNewtonian = true "Show the Newton-Cartan body when the viewer opens; it can be toggled in the viewer's legend either way";
   parameter Real rSceneMax = 30.0 * M "Outer radius of the embedding surface, profile and slice";
   discrete Real kretschmannSampled(start = 0.0, fixed = true) "k.kretschmann held at the scene samples";
   GeneralRelativity.Visualization.SceneRecorder scene(
@@ -30,6 +31,7 @@ model SchwarzschildOrbitScene "Schwarzschild and Newton-Cartan orbits recorded f
     trackNames = {"schwarzschild", "newton"},
     trackColors = {"#ffb454", "#7ee0a1"},
     trackDescriptions = {"Schwarzschild geodesic (general relativity)", "Newton-Cartan geodesic (Newtonian gravity), same initial position and dx/dt"},
+    trackVisible = {true, showNewtonian},
     nScalars = 4,
     scalarNames = {{"Kretschmann", "E", "L", "separation"}, {"E Newton", "L Newton", "", ""}},
     sampleInterval = sampleInterval,

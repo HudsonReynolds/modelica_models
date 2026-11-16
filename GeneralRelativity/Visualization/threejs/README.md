@@ -24,30 +24,62 @@ options (`Visualization.writeView`, or the `style`, `optionNames` and
 | `clocks` | Time-contracting grid: a sheet that sinks by the time each static clock has lost, `(1 - alpha)(t - t0)`; ticking clock faces; each body's own proper-time clock | slice |
 | `spacetime` | 2+1 spacetime diagram: worldlines against coordinate time; light cones on the "now" plane that narrow and tilt with the metric | tracks; cones need the slice |
 | `twins` | Twin paradox: Minkowski diagram with sliders for speed, turnaround distance and acceleration; worldlines, proper-time ticks, yearly light signals and the traveller's line of simultaneity recomputed live, with the simulated worldlines overlaid | a twin-paradox scene (`Examples.TwinParadox`) |
+| `lensing` | Gravitational lensing like a deep telescope image: background galaxies seen through a foreground galaxy (isothermal ellipse with external shear) or point mass; sliders for mass, shape and redshifts; critical curves, a source-plane inset with caustics, convergence and magnification maps; drag to move the lens, scroll to zoom | a `lens` record (`Visualization.writeLens`, `Examples.GalaxyLensing`) |
 | `raytrace` | GPU ray tracer of null geodesics in Kerr-Schild form: shadow, photon ring, lensed sky, thin accretion disk with Doppler and gravitational shifts, ray-traced bodies; orbit or ride along with a body | `metric` record of a known family (`writeMetric`) |
+
+Both river styles run on free-fall time `T = t + (1/c) int (v / c_r) dr` (`v` the
+river speed, `c_r` the outward radial speed of light, both from the slice); for
+Schwarzschild this is Gullstrand-Painleve time. In it the river carries a body
+dropped from rest far away exactly with the streaks, so streaks, shells and the
+bodies (re-timed sample by sample) share one clock and true speeds; only the
+light flashes of the 2D river run in slow motion. The spacetime diagram draws ct
+on the same scale as length, so light far from the mass is at 45 degrees and no
+worldline can look faster than its light cone; it shows a window of ct around
+now that scrolls as time runs.
 
 The river, clock and spacetime styles drop one spatial dimension: they draw the
 equatorial plane; the 3D river keeps all three, using the equatorial speeds at each radius (`theta = pi/2`, or `z = 0` in a Cartesian chart). Weak fields
 (Earth, cislunar) have river speeds near `4e-5 c` and clock lags near `1e-9`;
 those styles exaggerate them for display and say so in the side panel.
 
+### Showing and hiding bodies
+
+Each body in the side panel's legend has a checkbox that hides it (with its
+paths, clock and ray-traced sphere) in every style; the choice survives style
+changes. A scene can start with a body hidden: `trackVisible` in
+`SceneRecorder` (or `visible = false` in `writeTrack`); for example
+`SchwarzschildOrbitScene(showNewtonian = false)`.
+
 ### Style options (ids for `writeView`)
 
 | Style | Option ids (default) |
 |---|---|
 | `embedding` | `surface` (1), `wire` (1), `fields` (1) |
-| `river` | `tracers` (2500), `flow` (1), `flashes` (1), `rings` (5), `map` (1) |
-| `river3d` | `shells` (10), `meridians` (12), `parallels` (5), `spokes` (1), `fallTime` (14 s), `cut` (0 none, 1 front wedge, 2 upper half), `outer` (0.7) |
+| `river` | `tracers` (2500), `flow` (1, slow-motion rate of the light flashes), `flashes` (1), `rings` (5), `map` (1) |
+| `river3d` | `shells` (10), `meridians` (12), `parallels` (5), `spokes` (1), `cut` (0 none, 1 front wedge, 2 upper half), `outer` (0.7) |
 | `clocks` | `warp` (1), `clocks` (1), `stride` (8), `turns` (8), `grid` (1) |
-| `spacetime` | `height` (1.6), `cones` (1), `coneSize` (0.05), `rings` (6), `now` (1) |
+| `spacetime` | `window` (1.5, half-height of the visible ct window relative to the view), `cones` (1), `coneSize` (0.05), `rings` (6), `bodyCones` (1), `now` (1) |
 | `twins` | `beta` (0.8), `distance` (4 ly), `acceleration` (1 g), `tick` (1 yr), `signals` (1), `simultaneity` (1), `simulated` (1) |
-| `raytrace` | `resolution` (0.6), `steps` (600), `accuracy` (0.04), `disk` (1), `diskOuter` (8, in rs), `shift` (1), `sky` (0 stars, 1 grid, 2 checker), `bodySize` (0.35, in rs), `camera` (0 orbit, k ride with body k), `paths` (0), `exposure` (1) |
+| `lensing` | `mass` (log10 solar masses), `model` (0 galaxy, 1 point), `q`, `pa`, `gamma`, `gpa`, `zl`, `zs`, `aperture` (kpc), `sources` (150, up to 400; a deep field has about 150 in the 24" sky), `stars`, `seed`, `fov` (arcsec), `lensLight`, `crit`, `ring`, `map` (0, 1 convergence, 2 magnification), `inset`, `supersample`, `exposure`; the lens position is set by dragging; the lens itself defaults to the scene's `lens` record |
+| `raytrace` | `resolution` (1, fraction of device pixels once still), `samples` (24), `steps` (600), `accuracy` (0.04), `disk` (1), `diskOuter` (8, in rs), `shift` (1), `sky` (0 stars, 1 grid, 2 checker), `bodySize` (0.35, in rs), `camera` (0 orbit, k ride with body k), `paths` (0), `exposure` (1) |
 
 Booleans are 0 or 1. For example, a scene that opens in the ray tracer riding
 with its first body:
 
     GeneralRelativity.Visualization.SceneRecorder scene(..., style = "raytrace",
       optionNames = {"camera", "sky"}, optionValues = {1, 2});
+
+### Ray-tracer refinement
+
+While the view or the bodies move, the ray tracer draws a coarse preview (30% of
+the window). Once everything is still for 0.2 s it traces a sharper preview,
+then full device resolution with finer integration steps, then keeps adding
+sub-pixel-jittered samples (up to `samples`) that average into an anti-aliased
+image. Full-resolution passes are traced in horizontal bands sized to a
+per-frame pixel budget, so the page stays responsive; the side panel shows the
+progress. The integrator uses an analytic gradient of the Kerr-Schild
+Hamiltonian (one metric evaluation per Runge-Kutta stage), and exposure is
+applied at display time, so changing it does not re-trace.
 
 ### Ray-tracer metrics
 
@@ -97,7 +129,7 @@ so older scene files still load.
 
 Produce files with `GeneralRelativity.Examples.SchwarzschildOrbitScene`
 (`schwarzschild_scene.ndjson`: the Schwarzschild geodesic and the Newton-Cartan
-geodesic), `KerrOrbitScene` (`kerr_scene.ndjson`), `TwinParadox` (`twin_paradox.ndjson`), `EarthJ2OrbitScene`
+geodesic), `KerrOrbitScene` (`kerr_scene.ndjson`), `TwinParadox` (`twin_paradox.ndjson`), `GalaxyLensing` (`galaxy_lensing.ndjson`), `EarthJ2OrbitScene`
 (`earth_scene.ndjson`) or `CislunarOrbitScene` (`cislunar_scene.ndjson`). They
 are written to `~/Documents/Visualization` when `~/Documents` exists; set the
 `sceneDirectory` parameter or the `GR_SCENE_DIR` environment variable to use

@@ -65,6 +65,7 @@
 <script src="styles/spacetime.js"></script>
 <script src="styles/raytrace.js"></script>
 <script src="styles/twins.js"></script>
+<script src="styles/lensing.js"></script>
 </head>
 <body>
 <div id="layout">
@@ -157,6 +158,7 @@ let link = null;
 let playing = false;
 let clock = 0, tStart = 0, tEnd = 0;
 let sceneT0 = 0, sceneT1 = 0;   // time range of the scene's samples
+const hiddenTracks = new Set();  // bodies switched off in the legend, by name (kept across styles)
 
 function setTimeRange(t0, t1) {
   tStart = t0;
@@ -247,6 +249,44 @@ function planeXYZ(x) {
 const toWorld = (X, Y, Z = 0) => new THREE.Vector3(X, Z, -Y);
 const timeOf = (sample) => sample.x[0] / (data.header.c || 1);
 
+// Free-fall (Gullstrand-Painleve-like) time T = t + (1/c) int (v / c_r) dr, from the slice: v is the river
+// speed sqrt(1 + g_tt) and c_r the outward radial coordinate speed of light. A body falling from rest at
+// infinity then moves inward at exactly the river speed per unit of T, so river and bodies share a clock.
+// (For Schwarzschild this is the Gullstrand-Painleve time: v / c_r = sqrt(rs/r) / (1 - rs/r).)
+function freeFallClock() {
+  const sl = data.slice;
+  if (!sl || !sl.fields.river || !sl.fields.coneOut) return null;
+  const river = sampler(sl, 'river'), cone = sampler(sl, 'coneOut', 'coneValid');
+  const R1 = sceneExtent(), n = 800, rs = [], g = [];
+  for (let k = 0; k < n; k++) {
+    const r = (sl.rMin || 0) + (R1 - (sl.rMin || 0)) * (k + 0.5) / n;
+    let sum = 0, cnt = 0;
+    for (let m = 0; m < 8; m++) {
+      const a = 2 * Math.PI * m / 8, X = r * Math.cos(a), Y = r * Math.sin(a);
+      const v = river(X, Y), cr = cone(X, Y);
+      if (v === null || cr === null || cr <= 1e-6) continue;
+      sum += v / cr; cnt++;
+    }
+    if (cnt) { rs.push(r); g.push(sum / cnt); }
+  }
+  if (rs.length < 2) return null;
+  // H(r) = int_{R1}^{r} g dr' (trapezoid), clamped inside the innermost valid radius.
+  const H = new Array(rs.length).fill(0);
+  for (let k = rs.length - 2; k >= 0; k--) H[k] = H[k + 1] - 0.5 * (g[k] + g[k + 1]) * (rs[k + 1] - rs[k]);
+  const Hof = (r) => {
+    if (r <= rs[0]) return H[0];
+    if (r >= rs[rs.length - 1]) return H[H.length - 1] + g[g.length - 1] * (r - rs[rs.length - 1]);
+    let lo = 0, hi = rs.length - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (rs[mid] <= r) lo = mid; else hi = mid; }
+    const f = (r - rs[lo]) / (rs[hi] - rs[lo]);
+    return H[lo] + f * (H[hi] - H[lo]);
+  };
+  const c = data.header.c || 1;
+  return {
+    timeOf: (sample) => { const p = planeXYZ(sample.x); return sample.x[0] / c + Hof(Math.hypot(p.X, p.Y, p.Z)) / c; },
+  };
+}
+
 function sceneExtent() {
   const slice = data.slice;
   if (slice) return Math.max(Math.abs(slice.u[0]), Math.abs(slice.u[slice.u.length - 1]));
@@ -263,19 +303,23 @@ function makeCtx() {
     options: optionValues[styleDef.id],
     colormap, logRange, drawScale, clearScale, fmt, sampler, planeXYZ, toWorld, timeOf,
     tracks: () => tracks,
-    bodiesNow: () => tracks.map(t => ({ name: t.spec.name || 'body', color: t.color, sample: t.now, position: t.position })),
+    bodiesNow: () => tracks.map(t => ({ name: t.spec.name || 'body', color: t.color, sample: t.now, position: t.position, hidden: !!t.hidden })),
     setNotes: (text) => { ui.styleNotes.textContent = text || ''; },
     setBanner: (text) => { ui.banner.textContent = text || ''; },
     // A style that computes its own motion (the twin paradox) sets the animated time range itself.
     setTimeRange: (t0, t1) => { setTimeRange(t0, t1); },
     refreshVisibility: () => applyVisibility(),
+    // For styles driven by the pointer rather than the clock (lensing): refresh the readout and sliders.
+    refreshReadout: () => { ui.styleReadout.textContent = style && style.readout ? style.readout().join('\n') : ''; },
+    refreshOptionsUI: () => buildOptionsUI(),
+    freeFallClock: () => freeFallClock(),
   };
 }
 
 // --- scene parsing -----------------------------------------------------------------------------
 function parseScene(text) {
   const out = { header: null, rows: [], profile: null, fields: [], spheres: [], tracks: new Map(),
-                slices: new Map(), metric: null, view: null };
+                slices: new Map(), metric: null, view: null, records: {} };
   const track = (name) => {
     if (!out.tracks.has(name)) out.tracks.set(name, { name, color: null, scalarNames: [], description: '', samples: [] });
     return out.tracks.get(name);
@@ -291,18 +335,20 @@ function parseScene(text) {
       case 'profile': out.profile = obj; break;
       case 'field': out.fields.push(obj); break;
       case 'sphere': out.spheres.push(obj); break;
-      case 'track': Object.assign(track(obj.name), { color: obj.color, scalarNames: obj.scalarNames || [], description: obj.description || '' }); break;
+      case 'track': Object.assign(track(obj.name), { color: obj.color, scalarNames: obj.scalarNames || [], description: obj.description || '', visible: obj.visible !== false }); break;
       case 'sample': track(obj.track || '').samples.push(obj); break;
       case 'slice': out.slices.set(obj.name, Object.assign(obj, { fields: {} })); break;
       case 'sliceField': if (out.slices.has(obj.slice)) out.slices.get(obj.slice).fields[obj.name] = obj.values; break;
       case 'metric': out.metric = obj; break;
       case 'view': out.view = obj; break;
-      default: break;
+      // Other record types (e.g. 'lens') are kept for the styles that use them.
+      default: (out.records[obj.type] = out.records[obj.type] || []).push(obj); break;
     }
   }
   if (!out.header) out.header = { name: 'scene', chart: 'cartesian', referenceRadius: 1, lengthUnit: '', c: 1 };
   out.slice = out.slices.get('equator') || out.slices.values().next().value || null;
   out.trackSpecs = [...out.tracks.values()].filter(t => t.samples.length);
+  for (const t of out.trackSpecs) if (t.visible === false) hiddenTracks.add(t.name); else hiddenTracks.delete(t.name);
   for (const t of out.trackSpecs) t.samples.sort((a, b) => a.x[0] - b.x[0]);
   return out;
 }
@@ -346,8 +392,9 @@ function buildTracks() {
   link = null;
   tracks = data.trackSpecs.map((spec, index) => {
     const color = new THREE.Color(spec.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length]);
-    const times = spec.samples.map(timeOf);
-    const tr = { spec, color, times };
+    // A style may animate against its own time coordinate (the river styles use free-fall time).
+    const times = spec.samples.map(style.timeOf || timeOf);
+    const tr = { spec, color, times, hidden: hiddenTracks.has(spec.name) };
     tr.now = interpolateSample(tr, clock);
     const points = spec.samples.map(s => style.place(s.x, s, clock));
     tr.points = points;
@@ -371,6 +418,10 @@ function buildTracks() {
     link.name = 'link';
     tracksGroup.add(link);
   }
+  if (style.timeOf && tracks.length) {
+    setTimeRange(Math.min(...tracks.map(t => t.times[0])), Math.max(...tracks.map(t => t.times[t.times.length - 1])));
+    for (const tr of tracks) tr.now = interpolateSample(tr, clock);
+  }
   buildLegend();
   applyVisibility();
   updateBodies();
@@ -384,6 +435,20 @@ function buildLegend() {
     entry.innerHTML = `<div class="track-title"><span class="swatch" style="background:#${tr.color.getHexString()}"></span><span></span></div>`
       + `<div class="track-description"></div><div class="track-readout"></div>`;
     entry.querySelector('.track-title span:last-child').textContent = tr.spec.name || 'body';
+    // Show/hide this body (and its paths) in every style.
+    const toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    toggle.checked = !tr.hidden;
+    toggle.title = 'show this body';
+    toggle.addEventListener('change', () => {
+      tr.hidden = !toggle.checked;
+      if (tr.hidden) hiddenTracks.add(tr.spec.name); else hiddenTracks.delete(tr.spec.name);
+      entry.style.opacity = tr.hidden ? 0.45 : 1;
+      applyVisibility();
+      if (style && style.onBodiesChanged) style.onBodiesChanged();
+    });
+    entry.querySelector('.track-title').prepend(toggle);
+    entry.style.opacity = tr.hidden ? 0.45 : 1;
     entry.querySelector('.track-description').textContent = tr.spec.description || '';
     ui.legend.appendChild(entry);
     tr.readout = entry.querySelector('.track-readout');
@@ -440,7 +505,7 @@ function updateBodies() {
     link.computeLineDistances();
   }
   ui.time.value = String(tEnd > tStart ? Math.round(1000 * (clock - tStart) / (tEnd - tStart)) : 0);
-  ui.readout.textContent = [`${h.name}`, `chart ${h.chart}, lengths in ${h.lengthUnit}`, `t      ${fmt(clock)}`].join('\n');
+  ui.readout.textContent = [`${h.name}`, `chart ${h.chart}, lengths in ${h.lengthUnit}`, `${(style.clockLabel || 't').padEnd(6)} ${fmt(clock)}`].join('\n');
   ui.styleReadout.textContent = style.readout ? style.readout().join('\n') : '';
 }
 
@@ -452,9 +517,10 @@ function applyVisibility() {
   tracksGroup.traverse(o => {
     if (o.name === 'path') o.visible = ui.showPath.checked;
     if (o.name === 'trail') o.visible = ui.showTrail.checked;
-    if (o.name === 'link') o.visible = ui.showLink.checked;
+    if (o.name === 'link') o.visible = ui.showLink.checked && tracks.length >= 2 && !tracks[0].hidden && !tracks[1].hidden;
     if (o.name === 'body') o.visible = !hideBodies;
   });
+  for (const tr of tracks) if (tr.hidden) [tr.full, tr.trail, tr.body, tr.halo].forEach(o => { o.visible = false; });
 }
 
 // --- styles ------------------------------------------------------------------------------------
@@ -528,7 +594,10 @@ function buildOptionsUI() {
 function setOption(o, v, live = false) {
   optionValues[styleDef.id][o.id] = v;
   // A style can apply an option in place; otherwise it is rebuilt (sliders: on release).
-  if (style.onOption && style.onOption(o.id, v)) return;
+  if (style.onOption && style.onOption(o.id, v)) {
+    ui.styleReadout.textContent = style.readout ? style.readout().join('\n') : '';
+    return;
+  }
   if (!live) activateStyle(styleDef.id, false);
 }
 

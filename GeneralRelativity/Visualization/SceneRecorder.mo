@@ -29,6 +29,7 @@ model SceneRecorder "Reusable scene writer: one component gives a simulation eve
   parameter String trackNames[nTracks] = {"body" + String(i) for i in 1:nTracks} "Body names" annotation(Dialog(group = "Tracks"));
   parameter String trackColors[nTracks] = fill("#ffb454", nTracks) "Body colours" annotation(Dialog(group = "Tracks"));
   parameter String trackDescriptions[nTracks] = fill("", nTracks) "Legend text" annotation(Dialog(group = "Tracks"));
+  parameter Boolean trackVisible[nTracks] = fill(true, nTracks) "false: the body starts hidden in the viewer (toggle it in the legend)" annotation(Dialog(group = "Tracks"));
   parameter Integer nScalars = 0 "Scalars attached to every sample" annotation(Dialog(group = "Tracks"));
   parameter String scalarNames[nTracks, nScalars] = fill("", nTracks, nScalars) "Scalar labels per body; empty labels are hidden" annotation(Dialog(group = "Tracks"));
   parameter Real sampleInterval = 1.0 "Modelica time between samples" annotation(Dialog(group = "Tracks"));
@@ -60,7 +61,7 @@ initial algorithm
     writeSpacetimeSlice(scenePath(sceneFile, sceneDirectory), metric, p, spherical, rOuter, sliceResolution, sliceInner, trackX[1, 1]);
   end if;
   for i in 1:nTracks loop
-    writeTrack(scenePath(sceneFile, sceneDirectory), trackNames[i], trackColors[i], scalarNames[i, :], trackDescriptions[i]);
+    writeTrack(scenePath(sceneFile, sceneDirectory), trackNames[i], trackColors[i], scalarNames[i, :], trackDescriptions[i], trackVisible[i]);
   end for;
 algorithm
   // Also at the end of the simulation, so a terminate() (a reunion, an impact) is recorded exactly.

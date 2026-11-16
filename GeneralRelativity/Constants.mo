@@ -13,6 +13,8 @@ package Constants "Physical constants and body parameters in SI units"
   constant Real omega_earth(unit = "rad/s") = 7.2921150e-5 "Earth rotation rate";
   constant Real J_earth(unit = "kg.m2/s") = 5.86e33 "Earth spin angular momentum";
   constant Real earthMoonDistance(unit = "m") = 384400.0e3 "Mean Earth-Moon distance";
+  constant Real Mpc(unit = "m") = 3.0856775814913673e22 "Megaparsec";
+  constant Real arcsec(unit = "rad") = pi / 648000.0 "Second of arc";
   constant Real omega_moon(unit = "rad/s") = 2.6617e-6 "Mean sidereal lunar orbital rate";
 
   function schwarzschildRadius "r_s = 2 G M / c^2"

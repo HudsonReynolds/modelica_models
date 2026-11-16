@@ -14,7 +14,6 @@
     { id: 'meridians', label: 'meridians', type: 'range', min: 4, max: 36, step: 2, value: 12 },
     { id: 'parallels', label: 'parallels', type: 'range', min: 3, max: 18, step: 1, value: 5 },
     { id: 'spokes', label: 'radial lines', type: 'checkbox', value: 1 },
-    { id: 'fallTime', label: 'fall time (s)', type: 'range', min: 3, max: 60, step: 1, value: 14, help: 'Wall-clock seconds for a shell to fall from the outer edge to the centre' },
     { id: 'cut', label: 'cut-away', type: 'select', choices: [{ value: 0, label: 'none' }, { value: 1, label: 'front wedge' }, { value: 2, label: 'upper half' }], value: 1 },
     { id: 'outer', label: 'outer radius', type: 'range', min: 0.2, max: 1, step: 0.05, value: 0.7, help: 'Fraction of the scene size' },
   ],
@@ -117,7 +116,9 @@
         new THREE.MeshBasicMaterial({ color: 0xff6b5a, wireframe: true, transparent: true, opacity: 0.18 })));
     }
     ctx.drawScale(0, colourTop, 'river speed / c (shell colour)');
-    const notes = [`A shell takes ${ctx.fmt(period)} of coordinate time (units of ct) to fall from r = ${ctx.fmt(rOuter)} to ${ctx.fmt(rDead)}, shown in ${options.fallTime} s.`];
+    const clockT = ctx.freeFallClock();
+    const cLight = data.header.c || 1;
+    const notes = [`A shell takes ${ctx.fmt(period)} of free-fall time (units of ct) to fall from r = ${ctx.fmt(rOuter)} to ${ctx.fmt(rDead)}. The shells move on the simulation clock, in free-fall time, so a body dropped from rest far away falls with them.`];
     if (rLight) notes.push(`Red wire sphere: the river reaches c at r = ${ctx.fmt(rLight)}; shells keep falling, faster than light, inside it.`);
     if (vMax < 0.2) notes.push(`Weak field: fastest flow ${vMax.toExponential(2)} c. Only the timing is scaled; the shell spacing is true to v(r).`);
     if (wP.some(w => Math.abs(w) > 0)) notes.push('Shells twist about the spin axis with the frame-dragging rate (equatorial value at each radius).');
@@ -188,8 +189,11 @@
         const p = ctx.planeXYZ(x);
         return ctx.toWorld(p.X, p.Y, p.Z);
       },
-      update(clock, dt) {
-        flow += dt * period / options.fallTime;
+      timeOf: clockT ? clockT.timeOf : undefined,
+      clockLabel: clockT ? 'T' : 't',
+      update(clock) {
+        // ct of the simulation clock; the trajectory is periodic in it, so jumps (scrubbing, looping) are exact.
+        flow = cLight * clock;
         rebuild();
       },
       camera() {
@@ -198,13 +202,13 @@
       readout() {
         const lines = [];
         for (const b of ctx.bodiesNow()) {
+          if (b.hidden) continue;
           const p = ctx.planeXYZ(b.sample.x), r = Math.hypot(p.X, p.Y, p.Z);
           if (r >= rP[0] && r <= rP[rP.length - 1]) lines.push(`${b.name}: space falls past at ${ctx.fmt(lookup(vP, r))} c`);
         }
         return lines;
       },
       onOption(id) {
-        if (id === 'fallTime') return true;
         if (id === 'cut' || id === 'spokes') { rebuild(); return true; }
         return false;
       },
