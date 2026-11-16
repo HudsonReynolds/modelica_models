@@ -13,6 +13,8 @@ package Examples "Worked models: Schwarzschild orbit and curvature, Newton-Carta
 <td>The same orbits plus the Three.js scene stream (need <code>Modelica.Utilities</code> to link); every scene can be viewed as embedding, river, clocks, spacetime diagram or (with an analytic metric) ray tracer.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.KerrOrbitScene\">KerrOrbitScene</a></td>
 <td>Equatorial Kerr geodesic with a SceneRecorder: frame-dragged river, ray-traced asymmetric shadow.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.TwinParadox\">TwinParadox</a></td>
+<td>Twin paradox in Minkowski space with constant proper acceleration; ages checked against hyperbolic motion; interactive diagram in the viewer.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildCurvature\">SchwarzschildCurvature</a></td>
 <td>Christoffel symbols against closed form, vacuum Ricci, Kretschmann, implied stress-energy.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.EarthJ2Orbit\">EarthJ2Orbit</a></td>

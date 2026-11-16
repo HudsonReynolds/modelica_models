@@ -63,7 +63,8 @@ initial algorithm
     writeTrack(scenePath(sceneFile, sceneDirectory), trackNames[i], trackColors[i], scalarNames[i, :], trackDescriptions[i]);
   end for;
 algorithm
-  when sample(0.0, sampleInterval) then
+  // Also at the end of the simulation, so a terminate() (a reunion, an impact) is recorded exactly.
+  when {sample(0.0, sampleInterval), terminal()} then
     for i in 1:nTracks loop
       writeSample(scenePath(sceneFile, sceneDirectory), trackLambda[i], trackX[i, :], trackScalars[i, :], trackNames[i]);
     end for;
@@ -76,8 +77,10 @@ offers, switched at run time:</p>
 <tr><th>Style</th><th>Shows</th><th>Needs</th></tr>
 <tr><td><code>embedding</code></td><td>3D view; the equatorial plane as an embedded surface coloured by curvature</td><td>nothing (surface: <code>writeEmbedding</code>)</td></tr>
 <tr><td><code>river</code></td><td>River model: space flowing inward at <code>&radic;(1+g<sub>00</sub>)</code>, frame dragging, light flashes carried by the flow</td><td><code>writeSlice</code></td></tr>
+<tr><td><code>river3d</code></td><td>The river as a 3D grid of falling shells joined by radial lines, twisting with frame dragging</td><td><code>writeSlice</code></td></tr>
 <tr><td><code>clocks</code></td><td>Time-contracting grid: a sheet that sinks by the accumulated time lag <code>(1&minus;&alpha;)t</code>, with ticking clocks and body clocks</td><td><code>writeSlice</code></td></tr>
 <tr><td><code>spacetime</code></td><td>2+1 spacetime diagram: worldlines against coordinate time, light cones that close toward the horizon</td><td>tracks; cones need <code>writeSlice</code></td></tr>
+<tr><td><code>twins</code></td><td>Interactive twin-paradox Minkowski diagram (see <a href=\"modelica://GeneralRelativity.Examples.TwinParadox\">Examples.TwinParadox</a>)</td><td><code>style = \"twins\"</code></td></tr>
 <tr><td><code>raytrace</code></td><td>GPU ray tracer of null geodesics with the bodies, an accretion disk and a lensed sky</td><td><code>metricName</code></td></tr>
 </table>
 <p>Example, inside a model that integrates two bodies:</p>
@@ -93,6 +96,8 @@ offers, switched at run time:</p>
 <code>k.kretschmann</code> of <code>Metrics.curvatureAt</code>, should first be held in a <code>discrete</code>
 variable updated in <code>when sample(0, sampleInterval)</code>: bound continuously, OpenModelica 1.28
 re-evaluates the function many times per step or fails to scalarize it.</p>
+<p>Samples are written every <code>sampleInterval</code> and once more when the simulation ends, so a
+<code>terminate()</code> is recorded exactly.</p>
 <p>All tracks should share <code>x[1] = ct</code>; the viewer animates them against it. The slice is
 sampled at the first track's <code>x[1]</code> at the start, so time-dependent metrics are shown as a
 snapshot.</p>

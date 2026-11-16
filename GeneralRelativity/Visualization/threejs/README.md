@@ -20,12 +20,14 @@ options (`Visualization.writeView`, or the `style`, `optionNames` and
 |---|---|---|
 | `embedding` | 3D view; the equatorial plane embedded as a surface of revolution (Flamm's paraboloid), coloured by the Kretschmann scalar; spheres; field slices | nothing (surface from `writeEmbeddingSurface`) |
 | `river` | River model (Hamilton and Lisle): space flowing inward at `sqrt(1 + g_tt)`, swirling with frame dragging; light flashes expanding at c relative to the flow; a contour where the river reaches c | slice (`writeSpacetimeSlice`) |
+| `river3d` | The river in 3D: concentric shells of free-falling space (latitude/longitude nets joined by radial lines) stream inward, stretch radially, cross the horizon at c and twist with frame dragging; a wedge is cut away | slice |
 | `clocks` | Time-contracting grid: a sheet that sinks by the time each static clock has lost, `(1 - alpha)(t - t0)`; ticking clock faces; each body's own proper-time clock | slice |
 | `spacetime` | 2+1 spacetime diagram: worldlines against coordinate time; light cones on the "now" plane that narrow and tilt with the metric | tracks; cones need the slice |
+| `twins` | Twin paradox: Minkowski diagram with sliders for speed, turnaround distance and acceleration; worldlines, proper-time ticks, yearly light signals and the traveller's line of simultaneity recomputed live, with the simulated worldlines overlaid | a twin-paradox scene (`Examples.TwinParadox`) |
 | `raytrace` | GPU ray tracer of null geodesics in Kerr-Schild form: shadow, photon ring, lensed sky, thin accretion disk with Doppler and gravitational shifts, ray-traced bodies; orbit or ride along with a body | `metric` record of a known family (`writeMetric`) |
 
 The river, clock and spacetime styles drop one spatial dimension: they draw the
-equatorial plane (`theta = pi/2`, or `z = 0` in a Cartesian chart). Weak fields
+equatorial plane; the 3D river keeps all three, using the equatorial speeds at each radius (`theta = pi/2`, or `z = 0` in a Cartesian chart). Weak fields
 (Earth, cislunar) have river speeds near `4e-5 c` and clock lags near `1e-9`;
 those styles exaggerate them for display and say so in the side panel.
 
@@ -35,8 +37,10 @@ those styles exaggerate them for display and say so in the side panel.
 |---|---|
 | `embedding` | `surface` (1), `wire` (1), `fields` (1) |
 | `river` | `tracers` (2500), `flow` (1), `flashes` (1), `rings` (5), `map` (1) |
+| `river3d` | `shells` (10), `meridians` (12), `parallels` (5), `spokes` (1), `fallTime` (14 s), `cut` (0 none, 1 front wedge, 2 upper half), `outer` (0.7) |
 | `clocks` | `warp` (1), `clocks` (1), `stride` (8), `turns` (8), `grid` (1) |
 | `spacetime` | `height` (1.6), `cones` (1), `coneSize` (0.05), `rings` (6), `now` (1) |
+| `twins` | `beta` (0.8), `distance` (4 ly), `acceleration` (1 g), `tick` (1 yr), `signals` (1), `simultaneity` (1), `simulated` (1) |
 | `raytrace` | `resolution` (0.6), `steps` (600), `accuracy` (0.04), `disk` (1), `diskOuter` (8, in rs), `shift` (1), `sky` (0 stars, 1 grid, 2 checker), `bodySize` (0.35, in rs), `camera` (0 orbit, k ride with body k), `paths` (0), `exposure` (1) |
 
 Booleans are 0 or 1. For example, a scene that opens in the ray tracer riding
@@ -71,14 +75,15 @@ returns an object with:
 - `place(x, sample, t)`: where a body at scene coordinates `x` is drawn; the core
   draws bodies, trails and the legend with it (`dynamicPlacement: true` re-places
   them every frame; `hidesBodies: true` hides the core's bodies);
-- optional `update(clock, dt)`, `render(renderer, camera, scene)` (to draw the
+- optional `hidesTracks` (true, or a getter, to hide the simulated tracks), `update(clock, dt)`, `render(renderer, camera, scene)` (to draw the
   frame itself, as the ray tracer does), `camera()`, `readout()`,
   `onOption(id, value)` (return true when applied in place) and `dispose()`.
 
 `ctx` provides the parsed scene (`data`: header, slice and its fields, tracks,
 spheres, metric, embedding rows, profile), the clock, a colour map and colour
-bar, a bilinear `sampler(slice, field, mask)` for slice fields, and coordinate
-helpers.
+bar, a bilinear `sampler(slice, field, mask)` for slice fields, coordinate
+helpers, and `setTimeRange(t0, t1)` for a style that computes its own motion
+(the twin paradox does, so its sliders can change the trip's length).
 
 ## Scene records
 
@@ -92,7 +97,7 @@ so older scene files still load.
 
 Produce files with `GeneralRelativity.Examples.SchwarzschildOrbitScene`
 (`schwarzschild_scene.ndjson`: the Schwarzschild geodesic and the Newton-Cartan
-geodesic), `KerrOrbitScene` (`kerr_scene.ndjson`), `EarthJ2OrbitScene`
+geodesic), `KerrOrbitScene` (`kerr_scene.ndjson`), `TwinParadox` (`twin_paradox.ndjson`), `EarthJ2OrbitScene`
 (`earth_scene.ndjson`) or `CislunarOrbitScene` (`cislunar_scene.ndjson`). They
 are written to `~/Documents/Visualization` when `~/Documents` exists; set the
 `sceneDirectory` parameter or the `GR_SCENE_DIR` environment variable to use

@@ -36,8 +36,9 @@ The viewer animates every track against coordinate time <code>x[1]/c</code>.</li
 <h4>Visualization styles</h4>
 <p>The viewer shows the same scene in interchangeable styles: <b>embedding</b> (3D, embedded
 equatorial plane), <b>river</b> (space flowing into the hole, Hamilton and Lisle's river model),
-<b>clocks</b> (a time-contracting grid of clocks running at the lapse), <b>spacetime</b> (a 2+1 diagram of
-worldlines with light cones) and <b>raytrace</b> (GPU ray tracing of null geodesics). The slice-based styles
+<b>river3d</b> (the same flow as a 3D grid of falling shells), <b>clocks</b> (a time-contracting grid of clocks running at the lapse), <b>spacetime</b> (a 2+1 diagram of
+worldlines with light cones) <b>raytrace</b> (GPU ray tracing of null geodesics) and <b>twins</b> (an interactive twin-paradox
+Minkowski diagram). The slice-based styles
 drop one spatial dimension. The easiest way to provide everything is one
 <a href=\"modelica://GeneralRelativity.Visualization.SceneRecorder\">SceneRecorder</a> component per
 simulation; <code>Visualization/threejs/README.md</code> lists the style options.</p>

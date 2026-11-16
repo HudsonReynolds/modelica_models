@@ -34,6 +34,7 @@ models := {
   "GeneralRelativity.Examples.SchwarzschildNewtonCartanOrbit",
   "GeneralRelativity.Examples.SchwarzschildOrbitScene",
   "GeneralRelativity.Examples.KerrOrbitScene",
+  "GeneralRelativity.Examples.TwinParadox",
   "GeneralRelativity.Examples.EarthJ2Orbit",
   "GeneralRelativity.Examples.EarthJ2OrbitScene",
   "GeneralRelativity.Examples.CislunarOrbit",

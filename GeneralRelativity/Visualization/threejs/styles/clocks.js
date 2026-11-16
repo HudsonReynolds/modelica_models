@@ -24,7 +24,46 @@
     const group = new THREE.Group();
     const nu = slice.u.length, nv = slice.v.length;
     const lagF = slice.fields.timeLag, validF = slice.fields.valid;
-    const lagAt = ctx.sampler(slice, 'timeLag', 'valid');
+
+    // Where the slice has no clocks (inside a planet, inside a horizon, or the unevaluated centre), continue
+    // the lag inward with its value at the innermost evaluated radius, from an azimuthally averaged profile.
+    // This keeps the sheet and the bodies drawn on it continuous; a projected orbit that crosses the
+    // planet's disk no longer jumps.
+    const radius = (i, j) => Math.hypot(slice.u[i], slice.v[j]);
+    const bins = 240, rTop = extent * Math.SQRT2, sum = new Float64Array(bins), count = new Float64Array(bins);
+    let rValid = Infinity;
+    for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
+      if (validF[i][j] < 0.5) continue;
+      const R = radius(i, j), b = Math.min(bins - 1, Math.floor(R / rTop * bins));
+      sum[b] += lagF[i][j]; count[b] += 1;
+      rValid = Math.min(rValid, R);
+    }
+    const profileR = [], profileLag = [];
+    for (let b = 0; b < bins; b++) if (count[b] > 0) { profileR.push((b + 0.5) * rTop / bins); profileLag.push(sum[b] / count[b]); }
+    const innerLag = (() => {
+      // Mean lag of the valid nodes closest to the inner edge (within one grid spacing).
+      const h = (slice.u[nu - 1] - slice.u[0]) / (nu - 1);
+      let a = 0, n = 0;
+      for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) if (validF[i][j] > 0.5 && radius(i, j) <= rValid + 1.5 * h) { a += lagF[i][j]; n++; }
+      return n ? a / n : 0;
+    })();
+    const profile = (R) => {
+      if (!profileR.length || R <= profileR[0]) return innerLag;
+      if (R >= profileR[profileR.length - 1]) return profileLag[profileLag.length - 1];
+      let k = 1;
+      while (profileR[k] < R) k++;
+      const f = (R - profileR[k - 1]) / (profileR[k] - profileR[k - 1]);
+      return profileLag[k - 1] + f * (profileLag[k] - profileLag[k - 1]);
+    };
+    const effLag = slice.u.map((u, i) => slice.v.map((v, j) => validF[i][j] > 0.5 ? lagF[i][j] : Math.min(profile(radius(i, j)), innerLag)));
+    const lagAt = ctx.sampler({ u: slice.u, v: slice.v, fields: { lag: effLag } }, 'lag');
+    // Interior fill colour: dark inside a horizon, else the colour of a body (a planet) that contains the point, else dark.
+    const fillColour = (R) => {
+      if (data.spheres.some(sp => /horizon/i.test(sp.name) && R <= sp.radius * 1.0001)) return new THREE.Color(0.04, 0.04, 0.05);
+      const rCore = slice.rMin || 0;
+      const s = data.spheres.filter(sp => !/horizon/i.test(sp.name) && sp.radius <= rCore * 1.001 && R <= sp.radius * 1.0001).sort((a, b) => a.radius - b.radius)[0];
+      return s ? new THREE.Color(s.color || '#888888').multiplyScalar(0.7) : new THREE.Color(0.04, 0.04, 0.05);
+    };
 
     let lagMax = 0;
     for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
@@ -46,15 +85,16 @@
     // --- sheet -----------------------------------------------------------------------------------
     const positions = new Float32Array(nu * nv * 3), colors = new Float32Array(nu * nv * 3);
     const indices = [], gridIdx = [];
-    const ok = (i, j) => validF[i][j] > 0.5 && Math.hypot(slice.u[i], slice.v[j]) <= extent * 1.0001;
+    const inside = (i, j) => radius(i, j) <= extent * 1.0001;
+    const ok = (i, j) => validF[i][j] > 0.5 && inside(i, j);
     for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
       const k = i * nv + j;
       positions[3 * k] = slice.u[i]; positions[3 * k + 2] = -slice.v[j];
-      const c = ok(i, j) ? ctx.colormap(1 - Math.sqrt(lagF[i][j] / lagMax)) : new THREE.Color(0, 0, 0);
-      colors[3 * k] = c.r * 0.8; colors[3 * k + 1] = c.g * 0.8; colors[3 * k + 2] = c.b * 0.8;
+      const c = ok(i, j) ? ctx.colormap(1 - Math.sqrt(lagF[i][j] / lagMax)).multiplyScalar(0.8) : fillColour(radius(i, j));
+      colors[3 * k] = c.r; colors[3 * k + 1] = c.g; colors[3 * k + 2] = c.b;
     }
     for (let i = 0; i < nu - 1; i++) for (let j = 0; j < nv - 1; j++) {
-      if (!(ok(i, j) && ok(i + 1, j) && ok(i, j + 1) && ok(i + 1, j + 1))) continue;
+      if (!(inside(i, j) && inside(i + 1, j) && inside(i, j + 1) && inside(i + 1, j + 1))) continue;
       const a = i * nv + j, b = a + 1, c = a + nv, d = c + 1;
       indices.push(a, b, c, b, d, c);
     }
@@ -130,7 +170,7 @@
     function refresh(t) {
       for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
         const k = i * nv + j;
-        positions[3 * k + 1] = ok(i, j) ? depthAt(lagF[i][j], t) : depthAt(lagMax, t);
+        positions[3 * k + 1] = depthAt(effLag[i][j], t);
       }
       posAttr.needsUpdate = true;
       if (options.clocks) {
@@ -167,7 +207,7 @@
 
     const sheetHeight = (X, Y, t) => {
       const lag = lagAt(X, Y);
-      return depthAt(lag === null ? lagMax : lag, t);
+      return depthAt(lag === null ? profile(Math.hypot(X, Y)) : lag, t);
     };
 
     return {

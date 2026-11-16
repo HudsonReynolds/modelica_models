@@ -60,9 +60,11 @@
 <script>window.GRStyles = [];</script>
 <script src="styles/embedding.js"></script>
 <script src="styles/river.js"></script>
+<script src="styles/river3d.js"></script>
 <script src="styles/clocks.js"></script>
 <script src="styles/spacetime.js"></script>
 <script src="styles/raytrace.js"></script>
+<script src="styles/twins.js"></script>
 </head>
 <body>
 <div id="layout">
@@ -154,6 +156,13 @@ let tracksGroup = null;
 let link = null;
 let playing = false;
 let clock = 0, tStart = 0, tEnd = 0;
+let sceneT0 = 0, sceneT1 = 0;   // time range of the scene's samples
+
+function setTimeRange(t0, t1) {
+  tStart = t0;
+  tEnd = t1;
+  clock = Math.min(Math.max(clock, tStart), tEnd);
+}
 let sceneSize = 10;
 
 function resize() {
@@ -257,6 +266,9 @@ function makeCtx() {
     bodiesNow: () => tracks.map(t => ({ name: t.spec.name || 'body', color: t.color, sample: t.now, position: t.position })),
     setNotes: (text) => { ui.styleNotes.textContent = text || ''; },
     setBanner: (text) => { ui.banner.textContent = text || ''; },
+    // A style that computes its own motion (the twin paradox) sets the animated time range itself.
+    setTimeRange: (t0, t1) => { setTimeRange(t0, t1); },
+    refreshVisibility: () => applyVisibility(),
   };
 }
 
@@ -434,6 +446,8 @@ function updateBodies() {
 
 function applyVisibility() {
   if (!tracksGroup) return;
+  // hidesTracks may be a getter, so a style can toggle the simulated tracks with an option.
+  tracksGroup.visible = !(style && style.hidesTracks);
   const hideBodies = style && style.hidesBodies;
   tracksGroup.traverse(o => {
     if (o.name === 'path') o.visible = ui.showPath.checked;
@@ -530,6 +544,7 @@ function activateStyle(id, resetCamera = true) {
   ui.styleNotes.textContent = '';
   ui.banner.textContent = '';
   clearScale();
+  setTimeRange(sceneT0, sceneT1);
   style = def.create(makeCtx());
   if (style.group) scene3.add(style.group);
   buildOptionsUI();
@@ -561,6 +576,7 @@ function loadScene(text) {
   for (const t of data.trackSpecs) for (const s of t.samples) { const v = timeOf(s); lo = Math.min(lo, v); hi = Math.max(hi, v); }
   tStart = Number.isFinite(lo) ? lo : 0;
   tEnd = Number.isFinite(hi) ? hi : 0;
+  sceneT0 = tStart; sceneT1 = tEnd;
   clock = tStart;
   // Characteristic size: the slice, the embedding, the spheres and the samples.
   let size = 0;

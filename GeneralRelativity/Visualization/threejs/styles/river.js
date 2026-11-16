@@ -25,13 +25,15 @@
     const group = new THREE.Group();
     const river = ctx.sampler(slice, 'river');
     const drag = slice.fields.drag ? ctx.sampler(slice, 'drag') : () => 0;
-    const rDead = Math.max(slice.rMin || 0, 1e-6 * extent);
+    // Unevaluated core, plus 1.5 grid cells where bilinear samples would mix in its zeros.
+    const rCore = Math.max(slice.rMin || 0, 1e-6 * extent);
+    const rDead = rCore + 1.5 * (slice.u[slice.u.length - 1] - slice.u[0]) / (slice.u.length - 1);
 
     // Speeds over the evaluated part of the grid.
     let vMax = 0, vOuter = 0;
     slice.u.forEach((u, i) => slice.v.forEach((v, j) => {
       const R = Math.hypot(u, v);
-      if (R <= rDead || R > extent) return;
+      if (R <= rCore || R > extent) return;
       vMax = Math.max(vMax, slice.fields.river[i][j]);
     }));
     vOuter = vMax;
@@ -63,7 +65,7 @@
       for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
         const X = slice.u[i], Y = slice.v[j], R = Math.hypot(X, Y);
         positions.push(X, -0.002 * extent, -Y);
-        const dead = R <= rDead;
+        const dead = R <= rCore;
         const c = dead ? new THREE.Color(0, 0, 0) : ctx.colormap(slice.fields.river[i][j] / colourTop).multiplyScalar(0.55);
         const fade = R > extent ? 0.25 : 1;
         colors.push(c.r * fade, c.g * fade, c.b * fade);
@@ -72,7 +74,7 @@
         // Only cells inside the circle of radius extent, where tracers flow.
         if (Math.hypot(0.5 * (slice.u[i] + slice.u[i + 1]), 0.5 * (slice.v[j] + slice.v[j + 1])) > extent) continue;
         // Skip cells touching unevaluated nodes (inside a body or the innermost radius).
-        if ([[i, j], [i + 1, j], [i, j + 1], [i + 1, j + 1]].some(([a, b]) => Math.hypot(slice.u[a], slice.v[b]) <= rDead)) continue;
+        if ([[i, j], [i + 1, j], [i, j + 1], [i + 1, j + 1]].some(([a, b]) => Math.hypot(slice.u[a], slice.v[b]) <= rCore)) continue;
         const a = i * nv + j, b = a + 1, c = a + nv, d = c + 1;
         indices.push(a, b, c, b, d, c);
       }
@@ -91,7 +93,7 @@
       const f = slice.fields.river, u = slice.u, v = slice.v, pts = [];
       const lerp = (a, b, fa, fb) => a + (b - a) * (1 - fa) / (fb - fa);
       for (let i = 0; i < u.length - 1; i++) for (let j = 0; j < v.length - 1; j++) {
-        if (Math.hypot(u[i], v[j]) <= rDead * 1.5) continue;
+        if (Math.hypot(u[i], v[j]) <= rDead) continue;
         const c00 = f[i][j], c10 = f[i + 1][j], c01 = f[i][j + 1], c11 = f[i + 1][j + 1];
         const cross = [];
         if ((c00 - 1) * (c10 - 1) < 0) cross.push([lerp(u[i], u[i + 1], c00, c10), v[j]]);
@@ -117,7 +119,8 @@
       const color = new THREE.Color(s.color || '#888888');
       group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ring),
         new THREE.LineBasicMaterial({ color: color.getHex() === 0 ? 0x666666 : color })));
-      {
+      // Fill horizons, and bodies whose surface bounds the unevaluated core (a planet); others are outlines.
+      if (/horizon/i.test(s.name) || s.radius <= rCore * 1.001) {
         const horizon = /horizon/i.test(s.name);
         const disk = new THREE.Mesh(new THREE.CircleGeometry(s.radius, 64),
           new THREE.MeshBasicMaterial({ color: horizon ? 0x000000 : color, transparent: true, opacity: horizon ? 0.65 : 0.35 }));
