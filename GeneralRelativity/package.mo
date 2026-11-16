@@ -67,6 +67,8 @@ caller-chosen step per coordinate
 <td><a href=\"modelica://GeneralRelativity.Foliation\">Foliation</a></td></tr>
 <tr><td>Differential forms: wedge, Hodge dual, interior product, exterior derivative, codifferential, Cartan structure equations</td>
 <td><a href=\"modelica://GeneralRelativity.ExteriorCalculus\">ExteriorCalculus</a></td></tr>
+<tr><td>Inline tensor expressions in index notation, such as <code>g_{&mu;&nu;} g<sup>&mu;&nu;</sup></code> or <code>R_{abcd} R<sup>abcd</sup></code>, evaluated numerically against the curvature at an event</td>
+<td><a href=\"modelica://GeneralRelativity.IndexNotation\">IndexNotation</a></td></tr>
 <tr><td>Finite-difference Poisson, spherical finite elements, method-of-lines wave propagation</td>
 <td><a href=\"modelica://GeneralRelativity.Numerical\">Numerical</a></td></tr>
 <tr><td>Spherical harmonics, Clebsch-Gordan and Wigner 3j coefficients, Gaunt integrals</td>
@@ -112,7 +114,9 @@ Butler-Portugal index canonicalization, rewrite rules and
 <code>solve_tensors</code>, symbolic perturbation to arbitrary order and Isaacson
 averaging, quadratic actions, spin projectors and particle spectra, Feynman
 rules, Horndeski/DHOST/bimetric actions, covariant phase space, Clifford and
-Dirac-trace algebra, and LaTeX input and output. Vector and tensor
+Dirac-trace algebra, and LaTeX output. LaTeX-style index expressions are
+accepted as <i>numeric</i> input by
+<a href=\"modelica://GeneralRelativity.IndexNotation\">IndexNotation</a>. Vector and tensor
 harmonics are also not included.</p>
 
 <h4>Units</h4>
@@ -132,6 +136,12 @@ part in 10<sup>9</sup>; see
     GeneralRelativity.Metrics.schwarzschild, {0, 10, Modelica.Constants.pi/2, 0},
     {2.0}, {1e-3, 1e-3, 1e-3, 1e-3});
 // k.ricci is zero, k.kretschmann is 12*rs^2/r^6 = 48e-6</pre>
+<pre>GeneralRelativity.IndexNotation.TensorSystem sys =
+  GeneralRelativity.IndexNotation.systemAt(
+    GeneralRelativity.Metrics.schwarzschild, {0, 10, Modelica.Constants.pi/2, 0},
+    {2.0}, {1e-3, 1e-3, 1e-3, 1e-3});
+GeneralRelativity.IndexNotation.scalar(sys, \"R_{abcd} R^{abcd}\")  // the same 48e-6, typed as text
+GeneralRelativity.IndexNotation.scalar(sys, \"g_{mu nu} g^{mu nu}\")  // 4</pre>
 <p><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbit\">Examples.SchwarzschildOrbit</a>
 integrates a precessing orbit and checks the conserved energy and angular momentum;
 <a href=\"modelica://GeneralRelativity.Examples.SchwarzschildOrbitScene\">SchwarzschildOrbitScene</a>
