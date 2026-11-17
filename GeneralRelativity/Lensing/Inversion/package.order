@@ -6,3 +6,5 @@ brightnessCentroid
 einsteinRadiusFromImage
 imageResidual
 fitLens
+einsteinMass
+invert

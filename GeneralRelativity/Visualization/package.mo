@@ -36,7 +36,8 @@ The viewer animates every track against coordinate time <code>x[1]/c</code>;</li
 (<a href=\"modelica://GeneralRelativity.Visualization.writeLens\">writeLens</a>);</li>
 <li><code>lensImage</code> and <code>lensFit</code>: the images and the result of a lens inversion for the lensfit style
 (<a href=\"modelica://GeneralRelativity.Visualization.writeLensImage\">writeLensImage</a>,
-<a href=\"modelica://GeneralRelativity.Visualization.writeLensFit\">writeLensFit</a>).</li>
+<a href=\"modelica://GeneralRelativity.Visualization.writeLensFit\">writeLensFit</a>; both, with the inversion itself, from
+<a href=\"modelica://GeneralRelativity.Visualization.writeLensInversion\">writeLensInversion</a>, once per case for a library).</li>
 </ul>
 <h4>Visualization styles</h4>
 <p>The viewer shows the same scene in interchangeable styles: <b>embedding</b> (3D, embedded

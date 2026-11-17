@@ -8,6 +8,7 @@ LightDeflection
 GalaxyLensing
 LensInversion
 LensInversionFromFile
+LensInversionLibrary
 SchwarzschildCurvature
 IndexNotationDemo
 EarthJ2Orbit

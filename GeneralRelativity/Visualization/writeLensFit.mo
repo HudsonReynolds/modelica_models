@@ -20,6 +20,9 @@ impure function writeLensFit "Append the result of a lens inversion for the view
   input Real pixels = 0.0 "Number of pixels, the expected chi2 of a correct model with the right noise";
   input Real explained = 0.0 "Fraction of the image explained by the fitted simulation (imageResidual)";
   input Real correlation = 0.0 "Correlation of observed and fitted images";
+  input String caseName = "" "Case name when a scene holds a library of inversions; the images of the case carry the same name";
+  input String title = "" "Case title shown by the viewer";
+  input String description = "" "One or two sentences on what the image shows";
 protected
   String names;
 algorithm
@@ -28,7 +31,7 @@ algorithm
     names := names + (if i > 1 then "," else "") + "\"" + parameterNames[i] + "\"";
   end for;
   names := names + "]";
-  Modelica.Utilities.Streams.print("{\"type\":\"lensFit\",\"model\":\"" + lensModel + "\",\"parameterNames\":" + names
+  Modelica.Utilities.Streams.print("{\"type\":\"lensFit\",\"case\":\"" + caseName + "\",\"title\":\"" + title + "\",\"description\":\"" + description + "\",\"model\":\"" + lensModel + "\",\"parameterNames\":" + names
     + ",\"initial\":" + jsonVector(initialValues) + ",\"fitted\":" + jsonVector(fitted) + ",\"sigma\":" + jsonVector(sigma)
     + ",\"truth\":" + jsonVector(truth) + ",\"chi2History\":" + jsonVector(chi2History) + ",\"massHistorySolar\":" + jsonVector(massHistorySolar)
     + ",\"massSolar\":" + jsonNumber(massSolar) + ",\"massSigmaSolar\":" + jsonNumber(massSigmaSolar)

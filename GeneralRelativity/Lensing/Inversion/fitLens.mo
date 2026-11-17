@@ -23,6 +23,7 @@ function fitLens "Refine lens and sources until the simulated image matches the 
   output Boolean converged "false only when the iteration limit stopped the fit";
   output Real lensSigma[7] "Standard error of each lens parameter from the curvature of chi2 at the fit; 0 when fixed";
   output Real sourcesSigma[size(sources0, 1), 7];
+  output Real lensCovariance[7, 7] "Covariance of the lens parameters at the fit (zeros for fixed ones): the posterior covariance of the Kalman view";
 protected
   Integer ns = size(sources0, 1);
   Integer np = 7 + 7 * size(sources0, 1);
@@ -30,6 +31,7 @@ protected
   Integer nv = size(v, 1);
   Real pixel = if size(u, 1) > 1 then abs(u[2] - u[1]) else 1.0e-9;
   Real thetaScale = max(abs(lens0[1]), pixel);
+  Real maxSourceRadius = 0.5 * max(max(abs(u)), max(abs(v))) "A source larger than half the field is not a lensed galaxy but a background level";
   Real p[7 + 7 * size(sources0, 1)];
   Real p0[7 + 7 * size(sources0, 1)];
   Real pTry[7 + 7 * size(sources0, 1)];
@@ -155,9 +157,9 @@ algorithm
         pTry[4] := min(max(pTry[4], 0.1), 1.0);
         for s in 1:ns loop
           pTry[7 + 7 * (s - 1) + 3] := max(pTry[7 + 7 * (s - 1) + 3], 0.0);
-          pTry[7 + 7 * (s - 1) + 4] := max(pTry[7 + 7 * (s - 1) + 4], 1.0e-3 * thetaScale);
+          pTry[7 + 7 * (s - 1) + 4] := min(max(pTry[7 + 7 * (s - 1) + 4], 1.0e-3 * thetaScale), maxSourceRadius);
           pTry[7 + 7 * (s - 1) + 5] := min(max(pTry[7 + 7 * (s - 1) + 5], 0.1), 10.0);
-          pTry[7 + 7 * (s - 1) + 7] := min(max(pTry[7 + 7 * (s - 1) + 7], 0.3), 8.0);
+          pTry[7 + 7 * (s - 1) + 7] := min(max(pTry[7 + 7 * (s - 1) + 7], 0.3), 4.0);
           srcTry[s, :] := pTry[7 + 7 * (s - 1) + 1:7 + 7 * (s - 1) + 7];
         end for;
         plus := renderImage(u, v, pTry[1:7], srcTry, pointMass, subpixels, psfSigma);
@@ -233,6 +235,9 @@ algorithm
   lens := p[1:7];
   for k in 1:7 loop
     lensSigma[k] := if free[k] and ok and iterations > 0 then sqrt(max(C[k, k], 0.0)) * scale[k] else 0.0;
+    for l in 1:7 loop
+      lensCovariance[k, l] := if free[k] and free[l] and ok and iterations > 0 then C[k, l] * scale[k] * scale[l] else 0.0;
+    end for;
   end for;
   for s in 1:ns loop
     for k in 1:7 loop
@@ -250,6 +255,12 @@ algorithm
   // Canonical lens: a non-negative shear (a negative one is the same shear at 90 degrees) and position angles in [0, pi).
   if lens[6] < 0.0 then
     lens[6] := -lens[6];
+    for k in 1:7 loop
+      if k <> 6 then
+        lensCovariance[6, k] := -lensCovariance[6, k];
+        lensCovariance[k, 6] := -lensCovariance[k, 6];
+      end if;
+    end for;
     lens[7] := lens[7] + 0.5 * GeneralRelativity.Constants.pi;
   end if;
   lens[5] := lens[5] - GeneralRelativity.Constants.pi * floor(lens[5] / GeneralRelativity.Constants.pi);
@@ -267,7 +278,10 @@ prior covariance <code>W<sup>&minus;1</sup></code>, measurement Jacobian <code>J
 accuracy of the mass estimate is <code>2 &sigma;<sub>&theta;E</sub>/&theta;<sub>E</sub></code> relative (the mass goes as
 &theta;<sub>E</sub>&sup2;). A prior is also how catalogue knowledge enters: a known lens position or mass is a tight prior on those
 entries. Without priors the result is plain nonlinear least squares.</p>
-<p>Parameters are kept physical after every step (&theta;<sub>E</sub> &ge; 0, 0.1 &le; q<sub>lens</sub> &le; 1, 0.1 &le; q<sub>source</sub> &le; 10 where q above 1 means the axes swapped, I<sub>e</sub> &ge; 0,
-0.3 &le; n &le; 8). A point-mass lens fixes q and the position angle, which it does not use.</p>
+<p>The returned <code>lensCovariance</code> is that posterior covariance in physical units; use it with
+<a href=\"modelica://GeneralRelativity.Lensing.Inversion.einsteinMass\">einsteinMass</a> for the mass and its error, which depend
+on &theta;<sub>E</sub> and q together.</p>
+<p>Parameters are kept physical after every step (&theta;<sub>E</sub> &ge; 0, 0.1 &le; q<sub>lens</sub> &le; 1, 0.1 &le; q<sub>source</sub> &le; 10 where q above 1 means the axes swapped, I<sub>e</sub> &ge; 0, r<sub>e</sub> at most half the field,
+0.3 &le; n &le; 4, up to de Vaucouleurs: a steeper source would only absorb errors in the lens). A point-mass lens fixes q and the position angle, which it does not use.</p>
 </html>"));
 end fitLens;

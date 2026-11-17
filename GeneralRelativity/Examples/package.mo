@@ -28,6 +28,8 @@ package Examples "Worked models: Schwarzschild orbit and curvature, Newton-Carta
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.LensInversion\">LensInversion</a>,
 <a href=\"modelica://GeneralRelativity.Examples.LensInversionFromFile\">LensInversionFromFile</a></td>
 <td>The inverse: from a lensed image (synthetic with a known mass, or read from a file) to the lens mass: ring radius, mass estimate, simulation, &chi;&sup2; and a least-squares fit with standard errors; observed, simulated and residual images in the viewer.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.LensInversionLibrary\">LensInversionLibrary</a></td>
+<td>Eight synthetic lenses that look different on the sky (ring, double, giant arc, Einstein cross, point mass, noisy, group, low-mass), each inverted; a gallery in the viewer to pick from.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildCurvature\">SchwarzschildCurvature</a></td>
 <td>Christoffel symbols against closed form, vacuum Ricci, Kretschmann, implied stress-energy.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.EarthJ2Orbit\">EarthJ2Orbit</a></td>
