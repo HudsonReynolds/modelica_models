@@ -16,6 +16,7 @@ writeView
 writeLens
 writeLensImage
 writeLensFit
+writeLensInversion
 writeTrack
 writeSample
 tidalMagnitudeSlice

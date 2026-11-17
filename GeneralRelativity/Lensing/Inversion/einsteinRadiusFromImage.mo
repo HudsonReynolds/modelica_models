@@ -71,7 +71,9 @@ algorithm
 <p>A source on the axis of a symmetric lens makes a ring of radius &theta;<sub>E</sub>. Off the axis an isothermal sphere
 makes two images at <code>&theta;<sub>E</sub> &plusmn; &beta;</code> on opposite sides of the lens, which lie on a circle of radius
 &theta;<sub>E</sub> centred at the lens plus the source offset, so a circle fitted to the arcs recovers &theta;<sub>E</sub> exactly for
-that lens and approximately for an ellipse, a point mass or an extended source. The fit is the algebraic (K&aring;sa) least-squares
+that lens and approximately for a point mass or an extended source. For an isothermal ellipse the arcs follow the critical curve, with
+semi-axes <code>b</code> and <code>qb</code>, and the fitted radius is its equal-area radius <code>b&radic;q</code>, the Einstein radius
+that <a href=\"modelica://GeneralRelativity.Lensing.Inversion.einsteinMass\">einsteinMass</a> reports. The fit is the algebraic (K&aring;sa) least-squares
 circle through the pixels above the threshold, each weighted by its brightness above it; with fewer than three independent bright
 pixels it falls back to the brightness centroid and the mean radius. It is the starting point for
 <a href=\"modelica://GeneralRelativity.Lensing.Inversion.fitLens\">fitLens</a>, not the answer; the mass it implies is

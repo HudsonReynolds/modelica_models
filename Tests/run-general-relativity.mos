@@ -43,6 +43,7 @@ models := {
   "GeneralRelativity.Examples.GalaxyLensing",
   "GeneralRelativity.Examples.LensInversion",
   "GeneralRelativity.Examples.LensInversionFromFile",
+  "GeneralRelativity.Examples.LensInversionLibrary",
   "GeneralRelativity.Examples.EarthJ2Orbit",
   "GeneralRelativity.Examples.EarthJ2OrbitScene",
   "GeneralRelativity.Examples.CislunarOrbit",

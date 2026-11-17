@@ -1,5 +1,5 @@
 within Tests;
-model GeneralRelativityLensInversionTests "Lens inversion: mass from the Einstein radius, Sersic sources, the image simulation, the radius read off an image, the residual metrics and the least-squares fit with and without a prior"
+model GeneralRelativityLensInversionTests "Lens inversion: mass from the Einstein radius, Sersic sources, the image simulation, the radius read off an image, the residual metrics, the mass inside an elliptical critical curve, and the fit with and without a prior and from several starts"
   function run
     output Boolean passed;
   protected
@@ -44,6 +44,28 @@ model GeneralRelativityLensInversionTests "Lens inversion: mass from the Einstei
     Real fitSrcSigma[1, 7];
     Real prior[7];
     Integer mid = div(n + 1, 2);
+    Real twoSources[2, 7];
+    Real reference;
+    Real theta[2];
+    Real beta[2];
+    Real thetaEff;
+    Real thetaEffSigma;
+    Real GMfit;
+    Real GMfitSigma;
+    Real cov[7, 7];
+    Real kappaSum;
+    Real q;
+    Real b;
+    Real psi;
+    Real h;
+    Real ringRadius;
+    Real ringCentre[2];
+    Real lensStart[7];
+    Real srcStart[1, 7];
+    Real history2[4 + 30 + 1];
+    Real lensHistory2[4 + 30 + 1, 7];
+    Real fitCov[7, 7];
+    constant Integer nk = 401 "Grid for the convergence integral";
   algorithm
     Dl := GeneralRelativity.Lensing.angularDiameterDistance(0.0, 0.5);
     Ds := GeneralRelativity.Lensing.angularDiameterDistance(0.0, 2.0);
@@ -162,6 +184,74 @@ model GeneralRelativityLensInversionTests "Lens inversion: mass from the Einstei
       {true, true, true, true, true, false, false}, [true, true, true, true, false, false, false], prior, maxIterations = 20);
     assert(abs(fit[1] / (1.1 * 1.2 * arcsec) - 1.0) < 0.01, "A tight prior does not hold the Einstein radius");
     assert(fitSigma[1] < 1.1e-4 * arcsec, "The standard error under a tight prior is not the prior's");
+
+    // The fast renderer computes exactly the reference functions: deflectionAt and sersicSource, per pixel, with an ellipse lens,
+    // shear, and two sources (one with q > 1).
+    lens := {1.1 * arcsec, 0.07 * arcsec, -0.04 * arcsec, 0.7, 0.6, 0.06, 1.1};
+    twoSources := [0.12 * arcsec, 0.05 * arcsec, 1.0, 0.15 * arcsec, 0.6, 0.4, 1.0; -0.2 * arcsec, 0.1 * arcsec, 0.5, 0.1 * arcsec, 1.6, 1.3, 2.5];
+    image := GeneralRelativity.Lensing.Inversion.renderImage(u, u, lens, twoSources, false, 1);
+    for i in 1:n loop
+      for j in 1:n loop
+        theta := {u[i], u[j]};
+        beta := theta - GeneralRelativity.Lensing.Inversion.deflectionAt(theta, lens);
+        reference := GeneralRelativity.Lensing.Inversion.sersicSource(beta, twoSources[1, :]) + GeneralRelativity.Lensing.Inversion.sersicSource(beta, twoSources[2, :]);
+        assert(abs(image[i, j] - reference) < 1.0e-10 * max(reference, 1.0e-3), "renderImage differs from deflectionAt and sersicSource");
+      end for;
+    end for;
+    image := GeneralRelativity.Lensing.Inversion.renderImage(u, u, lens, twoSources, true, 1);
+    theta := {u[5], u[20]};
+    beta := theta - GeneralRelativity.Lensing.Inversion.deflectionAt(theta, lens, true);
+    assert(abs(image[5, 20] - GeneralRelativity.Lensing.Inversion.sersicSource(beta, twoSources[1, :]) - GeneralRelativity.Lensing.Inversion.sersicSource(beta, twoSources[2, :]))
+      < 1.0e-10, "renderImage differs from the references for a point mass");
+
+    // Mass inside the critical curve of an isothermal ellipse: the convergence integrated over psi < q b is pi q b^2 (mean 1),
+    // and einsteinMass reports it through the equal-area radius b sqrt(q).
+    q := 0.6;
+    b := 1.0;
+    h := 2.0 * b / q / (nk - 1);
+    kappaSum := 0.0;
+    for i in 1:nk loop
+      for j in 1:nk loop
+        theta := {-b / q + (i - 1) * h + 0.5 * h * 0.0, -b / q + (j - 1) * h};
+        psi := sqrt(q^2 * theta[1]^2 + theta[2]^2);
+        if psi < q * b and psi > 0.0 then
+          kappaSum := kappaSum + GeneralRelativity.Lensing.convergenceSIE(theta, b, q) * h^2;
+        end if;
+      end for;
+    end for;
+    assert(abs(kappaSum / (GeneralRelativity.Constants.pi * q * b^2) - 1.0) < 0.02, "The convergence inside the critical ellipse of an SIE is not pi q b^2");
+    lens := {1.2 * arcsec, 0.0, 0.0, 0.64, 0.3, 0.05, 0.2};
+    cov := zeros(7, 7);
+    (thetaEff, thetaEffSigma, GMfit, GMfitSigma) := GeneralRelativity.Lensing.Inversion.einsteinMass(lens, cov, false, Dl, Ds, Dls);
+    assert(abs(thetaEff / (0.8 * 1.2 * arcsec) - 1.0) < 1.0e-12 and thetaEffSigma == 0.0 and GMfitSigma == 0.0, "The equal-area Einstein radius is not b sqrt(q)");
+    assert(abs(GMfit / GeneralRelativity.Lensing.massInEinsteinRadius(1.2 * arcsec, Dl, Ds, Dls) - 0.64) < 1.0e-12, "The mass inside the critical ellipse is not q times that of the sphere with the same b");
+    (thetaEff, thetaEffSigma, GMfit, GMfitSigma) := GeneralRelativity.Lensing.Inversion.einsteinMass(lens, cov, true, Dl, Ds, Dls);
+    assert(abs(thetaEff / (1.2 * arcsec) - 1.0) < 1.0e-12, "A point mass's Einstein radius is not b");
+    // Error propagation: d(thetaE)/thetaE = db/b + dq/(2q); the mass error is twice the relative radius error, and correlation counts.
+    cov[1, 1] := (0.01 * 1.2 * arcsec)^2;
+    cov[4, 4] := 0.02^2;
+    (thetaEff, thetaEffSigma, GMfit, GMfitSigma) := GeneralRelativity.Lensing.Inversion.einsteinMass(lens, cov, false, Dl, Ds, Dls);
+    assert(abs(thetaEffSigma / thetaEff - sqrt(0.01^2 + (0.02 / (2.0 * 0.64))^2)) < 1.0e-12 and abs(GMfitSigma / GMfit - 2.0 * thetaEffSigma / thetaEff) < 1.0e-12,
+      "The Einstein-radius and mass errors are not propagated from b and q");
+    cov[1, 4] := -0.9 * sqrt(cov[1, 1] * cov[4, 4]);
+    cov[4, 1] := cov[1, 4];
+    (thetaEff, thetaEffSigma, GMfit, GMfitSigma) := GeneralRelativity.Lensing.Inversion.einsteinMass(lens, cov, false, Dl, Ds, Dls);
+    assert(thetaEffSigma / thetaEff < sqrt(0.01^2 + (0.02 / (2.0 * 0.64))^2), "Anti-correlated b and q do not shrink the Einstein-radius error");
+
+    // invert on a double: one bright image, one faint counter-image, where a single fit started at the circle through the images can converge to
+    // the wrong lens (that circle is centred on the source); the multi-start must recover it.
+    lens := {1.0 * arcsec, -0.1 * arcsec, 0.05 * arcsec, 0.85, 70.0 * pi / 180.0, 0.0, 0.0};
+    src := [0.45 * arcsec, 0.2 * arcsec, 1.0, 0.1 * arcsec, 0.7, 2.0, 1.0];
+    image := GeneralRelativity.Lensing.Inversion.renderImage(u, u, lens, src, false, 2, 0.05 * arcsec);
+    noise := 0.02 * max(image);
+    observed := GeneralRelativity.Lensing.Inversion.syntheticImage(u, u, lens, src, false, noise, 23, 2, 0.05 * arcsec);
+    (ringRadius, ringCentre, lensStart, srcStart, fit, fitSrc, history2, lensHistory2, iterations, converged, fitSigma, fitSrcSigma, fitCov) :=
+      GeneralRelativity.Lensing.Inversion.invert(u, u, observed, noise, false, 0.05 * arcsec, 30, 4);
+    assert(history2[1] > history2[4 + 30 + 1], "invert did not improve on its start");
+    assert(history2[4 + 30 + 1] < 1.5 * n^2, "invert did not reach the noise level on a double");
+    (thetaEff, thetaEffSigma, GMfit, GMfitSigma) := GeneralRelativity.Lensing.Inversion.einsteinMass(fit, fitCov, false, Dl, Ds, Dls);
+    assert(abs(thetaEff / (sqrt(0.85) * arcsec) - 1.0) < 0.05, "invert did not recover the Einstein radius of a double within 5%");
+    assert(sqrt((fit[2] + 0.1 * arcsec)^2 + (fit[3] - 0.05 * arcsec)^2) < 0.1 * arcsec, "invert did not find the lens position of a double");
     passed := true;
   end run;
 

@@ -6,10 +6,11 @@ impure function writeLensImage "Append an image on an angular grid for the viewe
   input Real v[:] "Second image coordinate, in arcseconds";
   input Real values[size(u, 1), size(v, 1)] "Surface brightness at (u[i], v[j])";
   input String unit = "" "Label for the values, for example \"sigma\" for a normalized residual";
+  input String caseName = "" "Case the image belongs to when a scene holds a library of inversions (writeLensFit with the same caseName); empty for a single case";
 protected
   String text;
 algorithm
-  text := "{\"type\":\"lensImage\",\"name\":\"" + name + "\",\"unit\":\"" + unit + "\",\"u\":" + jsonVector(u, 9) + ",\"v\":" + jsonVector(v, 9) + ",\"values\":[";
+  text := "{\"type\":\"lensImage\",\"name\":\"" + name + "\",\"case\":\"" + caseName + "\",\"unit\":\"" + unit + "\",\"u\":" + jsonVector(u, 9) + ",\"v\":" + jsonVector(v, 9) + ",\"values\":[";
   for i in 1:size(u, 1) loop
     text := text + (if i > 1 then "," else "") + jsonVector(values[i, :], 7);
   end for;
