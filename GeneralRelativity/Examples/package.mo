@@ -15,6 +15,12 @@ package Examples "Worked models: Schwarzschild orbit and curvature, Newton-Carta
 <td>Equatorial Kerr geodesic with a SceneRecorder: frame-dragged river, ray-traced asymmetric shadow.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.TwinParadox\">TwinParadox</a></td>
 <td>Twin paradox in Minkowski space with constant proper acceleration; ages checked against hyperbolic motion; interactive diagram in the viewer.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.BinaryMerger\">BinaryMerger</a></td>
+<td>Binary black holes (or neutron stars): post-Newtonian inspiral with radiation reaction, chirp waveform, merger into the remnant Kerr hole and ringdown; ray-traced in the viewer.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.CosmicExpansion\">CosmicExpansion</a></td>
+<td>The Friedmann equation of the Planck 2018 universe integrated in cosmic time from the radiation era into the accelerating future: horizons, receding galaxies and light rays; expanding-universe scene for the viewer.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.CosmicMicrowaveBackground\">CosmicMicrowaveBackground</a></td>
+<td>Recombination, the photon-baryon sound waves and the CMB temperature power spectrum from linear perturbations, compared with the Planck 2018 measurements; CMB scene for the viewer.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.LightDeflection\">LightDeflection</a></td>
 <td>A Schwarzschild null geodesic's bending angle against 4GM/(c&sup2;b) and its higher orders.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.GalaxyLensing\">GalaxyLensing</a></td>

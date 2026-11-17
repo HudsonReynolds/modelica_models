@@ -29,7 +29,8 @@
     const drag = slice.fields.drag ? ctx.sampler(slice, 'drag') : () => 0;
     // Stay 1.5 grid cells outside the unevaluated core: bilinear samples there would mix in its zeros.
     const rDead = Math.max(slice.rMin || 0, 1e-6 * extent) + 1.5 * (slice.u[slice.u.length - 1] - slice.u[0]) / (slice.u.length - 1);
-    const rOuter = options.outer * extent;
+    // At least a little outside the core, whatever the slider says (a planet can fill much of the view).
+    const rOuter = Math.max(options.outer * extent, 1.3 * rDead);
 
     // Azimuthally averaged equatorial profiles v(r) and omega(r).
     const nProfile = 400, rP = [], vP = [], wP = [];
@@ -69,7 +70,7 @@
         traj.s.push(s); traj.r.push(r); traj.psi.push(psi);
       }
     }
-    const period = traj.s[traj.s.length - 1];
+    const period = traj.s[traj.s.length - 1] || 1;
     const along = (s) => {
       s = ((s % period) + period) % period;
       let lo = 0, hi = traj.s.length - 1;

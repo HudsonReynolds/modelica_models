@@ -1,7 +1,7 @@
 within GeneralRelativity.Examples;
 model LensInversionFromFile "Lens inversion of an image read from a file: the mass that must be distorting the light, with its standard error, and the simulated image that matches"
   parameter String imageFile = GeneralRelativity.Visualization.scenePath("lens_inversion_observed.mat")
-    "MATLAB v4 file with the bordered matrix lensImage (first column u and first row v in arcseconds, the rest the image): written by LensInversion, or by tools/lens_image_to_mat.py from a picture";
+    "MATLAB file (v4 or v6) with the bordered matrix lensImage (first column u and first row v in arcseconds, the rest the image): written by LensInversion, or by tools/lens_image_to_mat.py from a picture";
   parameter Real zLens = 0.5 "Lens redshift";
   parameter Real zSource = 2.0 "Source redshift";
   parameter Real H0 = 70.0 "Hubble constant, km/s/Mpc";
@@ -14,9 +14,13 @@ model LensInversionFromFile "Lens inversion of an image read from a file: the ma
   parameter Integer maxIterations = 30;
   parameter String sceneFile = "lens_inversion_file.ndjson" "Scene file name";
   parameter String sceneDirectory = "" "Output folder; empty uses GR_SCENE_DIR, else ~/Documents/Visualization";
-  final parameter Integer borderedSize[2] = Modelica.Utilities.Streams.readMatrixSize(imageFile, "lensImage");
+  // A missing file would crash the compiler (the size is read at translation): fall back to a dummy 2 x 2 image
+  // and stop at initialization with a message instead.
+  final parameter Boolean imageFound = Modelica.Utilities.Files.exist(imageFile) "The image file exists";
+  final parameter Integer borderedSize[2] = if imageFound then Modelica.Utilities.Streams.readMatrixSize(imageFile, "lensImage") else {3, 3};
   final parameter Integer dims[2] = borderedSize - {1, 1} "Image size";
-  final parameter Real bordered[dims[1] + 1, dims[2] + 1] = Modelica.Utilities.Streams.readRealMatrix(imageFile, "lensImage", dims[1] + 1, dims[2] + 1);
+  final parameter Real bordered[dims[1] + 1, dims[2] + 1] = if imageFound then Modelica.Utilities.Streams.readRealMatrix(imageFile, "lensImage", dims[1] + 1, dims[2] + 1)
+    else [0, 1, 2; 1, 0, 0; 2, 0, 0];
   final parameter Real observed[dims[1], dims[2]] = bordered[2:dims[1] + 1, 2:dims[2] + 1] "The input image";
   final parameter Real arcsec = GeneralRelativity.Constants.arcsec;
   final parameter Real deg = GeneralRelativity.Constants.pi / 180.0;
@@ -119,13 +123,15 @@ initial algorithm
     0.0, lens[1] / arcsec, {Dl, Ds, Dls} / GeneralRelativity.Constants.Mpc, iterations, converged, dims[1] * dims[2], explainedFinal, correlationFinal);
   GeneralRelativity.Visualization.writeLens(path, if pointMass then "point" else "galaxy", massInApertureSolar, apertureKpc, zLens, zSource, H0, OmegaM,
     lens[4], lens[5] / deg, lens[6], lens[7] / deg, lens[1] / arcsec, {Dl, Ds, Dls} / GeneralRelativity.Constants.Mpc);
+initial equation
+  assert(imageFound, "No image file " + imageFile + ": run Examples.LensInversion first (it writes one), or make one from a picture with tools/lens_image_to_mat.py");
 equation
   assert(chi2Final <= chi2Initial, "Iterating did not improve on the first simulation");
   assert(lens[1] > 0.0 and massSolar > 0.0, "The fit found no lens");
   annotation(experiment(StartTime = 0.0, StopTime = 1.0, Tolerance = 1.0e-8, Interval = 0.1),
     Documentation(info="<html>
 <p>The same five steps as <a href=\"modelica://GeneralRelativity.Examples.LensInversion\">LensInversion</a> for an image whose
-true lens is unknown. The file holds one MATLAB v4 matrix, <code>lensImage</code>: its first column (from row 2) is <code>u</code> and
+true lens is unknown. The file holds one MATLAB matrix (v4 or v6), <code>lensImage</code>: its first column (from row 2) is <code>u</code> and
 its first row (from column 2) is <code>v</code>, the pixel-centre angles in arcseconds, and the rest is the surface brightness with the
 lens light subtracted. <code>LensInversion</code> writes such a file of
 its synthetic observation, so by default this model re-analyses it; <code>tools/lens_image_to_mat.py</code> makes one from a PNG or

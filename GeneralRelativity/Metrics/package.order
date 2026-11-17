@@ -8,6 +8,7 @@ cislunar
 reissnerNordstrom
 kerrNewman
 kerrSchild
+binaryKerrSchild
 schwarzschildDeSitter
 flrw
 flrwCurved

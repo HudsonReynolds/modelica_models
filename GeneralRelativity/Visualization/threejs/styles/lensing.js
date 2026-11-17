@@ -89,6 +89,10 @@
   // Source parameters live in a float texture (3 texels per galaxy), not uniforms, so the count is not limited
   // by the GPU's uniform budget. A Hubble deep field has ~0.25 galaxies per square arcsec, ~150 in the 24" sky.
   const MAXSRC = 400;
+  // Spatial index: the source plane is cut into GRID x GRID cells, and each cell lists the galaxies whose
+  // footprint (radius 7 scale lengths, where the profiles are cut off) overlaps it. A pixel then visits only
+  // the few galaxies in the cell its ray lands in, instead of all of them.
+  const GRID = 64, IDXW = 256;
   const FRAGMENT = /* glsl */`
     varying vec2 vUv;
     uniform vec2 uCentre; uniform float uFov, uAspect;
@@ -99,6 +103,9 @@
     // Row i: texel 0 = x, y, size, pa; 1 = q, brightness, type (0 elliptical, 1 spiral, 2 irregular), hue;
     // 2 = pitch (tan), arms, bulge fraction, arm phase.
     uniform highp sampler2D uSrc;
+    uniform highp sampler2D uCells;  // GRID x GRID: first list entry, galaxy count
+    uniform highp sampler2D uIndex;  // the cells' galaxy lists, IDXW entries per row
+    uniform float uGridSpan;         // the cells cover [-uGridSpan, uGridSpan]^2 (arcsec)
     uniform int uStars;
     uniform vec4 uStar[4];           // x, y, brightness, unused
     float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -136,6 +143,7 @@
     // (rotate by the position angle, stretch the minor axis by 1/q) in units of its scale length.
     vec3 galaxy(vec2 beta, vec4 A, vec4 B, vec4 Cc) {
       vec2 d = beta - A.xy;
+      if (dot(d, d) > 49.0 * A.z * A.z) return vec3(0.0);
       float c = cos(A.w), s = sin(A.w);
       vec2 w = vec2(c * d.x + s * d.y, (-s * d.x + c * d.y) / B.x) / A.z;
       float rr = length(w);
@@ -169,8 +177,15 @@
     }
     vec3 sky(vec2 beta) {
       vec3 col = vec3(0.0);
-      for (int i = 0; i < ${MAXSRC}; i++) {
-        if (i >= uCount) break;
+      vec2 g = (beta + uGridSpan) / (2.0 * uGridSpan) * ${GRID}.0;
+      // No galaxy reaches outside the grid.
+      if (uCount == 0 || any(lessThan(g, vec2(0.0))) || any(greaterThanEqual(g, vec2(${GRID}.0)))) return col;
+      vec4 cell = texelFetch(uCells, ivec2(g), 0);
+      int start = int(cell.x + 0.5), count = int(cell.y + 0.5);
+      for (int k = 0; k < ${MAXSRC}; k++) {
+        if (k >= count) break;
+        int j = start + k;
+        int i = int(texelFetch(uIndex, ivec2(j - ${IDXW} * (j / ${IDXW}), j / ${IDXW}), 0).x + 0.5);
         col += galaxy(beta, texelFetch(uSrc, ivec2(0, i), 0), texelFetch(uSrc, ivec2(1, i), 0), texelFetch(uSrc, ivec2(2, i), 0));
       }
       return col;
@@ -287,13 +302,17 @@
       const srcData = new Float32Array(3 * MAXSRC * 4);
       const srcTexture = new THREE.DataTexture(srcData, 3, MAXSRC, THREE.RGBAFormat, THREE.FloatType);
       srcTexture.minFilter = srcTexture.magFilter = THREE.NearestFilter;
+      const cellData = new Float32Array(GRID * GRID * 4);
+      const cellTexture = new THREE.DataTexture(cellData, GRID, GRID, THREE.RGBAFormat, THREE.FloatType);
+      cellTexture.minFilter = cellTexture.magFilter = THREE.NearestFilter;
+      let indexTexture = null;
       const uniforms = {
         uCentre: { value: new THREE.Vector2() }, uFov: { value: 4 }, uAspect: { value: 1 },
         uLensing: { value: 1 }, uPoint: { value: 0 }, uCrit: { value: 1 }, uMap: { value: 0 }, uSuper: { value: 1 },
         uB: { value: 1 }, uQ: { value: 0.75 }, uPA: { value: 0 }, uGamma: { value: 0 }, uGPA: { value: 0 },
         uLensLight: { value: 0.6 }, uExposure: { value: 1.6 }, uRing: { value: 0 }, uPixel: { value: 0.01 },
         uLens: { value: new THREE.Vector2() }, uCount: { value: 0 },
-        uSrc: { value: srcTexture },
+        uSrc: { value: srcTexture }, uCells: { value: cellTexture }, uIndex: { value: null }, uGridSpan: { value: 16 },
         uStars: { value: 1 }, uStar: { value: Array.from({ length: 4 }, () => new THREE.Vector4()) },
       };
       const material = new THREE.ShaderMaterial({ vertexShader: VERTEX, fragmentShader: FRAGMENT, uniforms, depthTest: false, depthWrite: false });
@@ -311,19 +330,60 @@
         ctx.setNotes('Lensing shader failed to compile:\n' + (gl.getShaderInfoLog(fs) || gl.getProgramInfoLog(program)));
       };
 
-      let phys = null, lens = null, causticInfo = '', lastFrameKey = '';
-      function update() {
-        phys = lensPhysics(options, H0, Om);
-        lens = { point: phys.point, b: phys.thetaE, q: options.q, pa: options.pa * Math.PI / 180, gamma: options.gamma, gpa: options.gpa * Math.PI / 180, lx: options._lx || 0, ly: options._ly || 0 };
-        // The sky is fixed (it depends only on the seed and count), so galaxies stay put while the lens changes.
+      // The sky (and its spatial index) depends only on the seed and the count: rebuilt only when they change.
+      let skyKey = '';
+      function buildSky() {
+        const key = Math.round(options.sources) + '/' + Math.round(options.seed);
+        if (key === skyKey) return;
+        skyKey = key;
         const srcs = makeSources(Math.round(options.sources), Math.round(options.seed), 12);
         const n = Math.min(srcs.length, MAXSRC);
         uniforms.uCount.value = n;
+        let span = 1;
         for (let i = 0; i < n; i++) {
           const s = srcs[i];
           srcData.set([s.x, s.y, s.size, s.pa, s.q, s.bright, s.type, s.hue, s.pitch, s.arms, s.bulge, s.phase], 12 * i);
+          span = Math.max(span, Math.abs(s.x) + 7 * s.size, Math.abs(s.y) + 7 * s.size);
         }
         srcTexture.needsUpdate = true;
+        span *= 1.001;
+        const cs = 2 * span / GRID, cells = Array.from({ length: GRID * GRID }, () => []);
+        const cellOf = (v) => Math.max(0, Math.min(GRID - 1, Math.floor((v + span) / cs)));
+        for (let i = 0; i < n; i++) {
+          const s = srcs[i], R = 7 * s.size;
+          for (let cy = cellOf(s.y - R); cy <= cellOf(s.y + R); cy++) {
+            for (let cx = cellOf(s.x - R); cx <= cellOf(s.x + R); cx++) {
+              // Keep the cell only if the footprint circle reaches it.
+              const nx = Math.max(-span + cx * cs, Math.min(s.x, -span + (cx + 1) * cs)), ny = Math.max(-span + cy * cs, Math.min(s.y, -span + (cy + 1) * cs));
+              if ((nx - s.x) ** 2 + (ny - s.y) ** 2 <= R * R) cells[cy * GRID + cx].push(i);
+            }
+          }
+        }
+        const list = [];
+        cells.forEach((c, k) => { cellData[4 * k] = list.length; cellData[4 * k + 1] = c.length; list.push(...c); });
+        cellTexture.needsUpdate = true;
+        const rows = Math.max(1, Math.ceil(list.length / IDXW));
+        if (!indexTexture || indexTexture.image.height !== rows) {
+          if (indexTexture) indexTexture.dispose();
+          indexTexture = new THREE.DataTexture(new Float32Array(IDXW * rows * 4), IDXW, rows, THREE.RGBAFormat, THREE.FloatType);
+          indexTexture.minFilter = indexTexture.magFilter = THREE.NearestFilter;
+          uniforms.uIndex.value = indexTexture;
+        }
+        const idx = indexTexture.image.data;
+        idx.fill(0);
+        list.forEach((v, k) => { idx[4 * k] = v; });
+        indexTexture.needsUpdate = true;
+        uniforms.uGridSpan.value = span;
+        skyInfo = `${n} galaxies; at most ${Math.max(...cells.map((c) => c.length))} per pixel (spatial index ${GRID}x${GRID})`;
+      }
+
+      let phys = null, lens = null, causticInfo = '', skyInfo = '', lastFrameKey = '', lastChange = 0;
+      function update() {
+        lastChange = performance.now();
+        phys = lensPhysics(options, H0, Om);
+        lens = { point: phys.point, b: phys.thetaE, q: options.q, pa: options.pa * Math.PI / 180, gamma: options.gamma, gpa: options.gpa * Math.PI / 180, lx: options._lx || 0, ly: options._ly || 0 };
+        // The sky is fixed (it depends only on the seed and count), so galaxies stay put while the lens changes.
+        buildSky();
         const stars = makeStars(Math.round(options.seed), 10);
         stars.forEach((st, i) => uniforms.uStar.value[i].set(st.x, st.y, st.bright, 0));
         uniforms.uStars.value = options.stars ? 1 : 0;
@@ -333,7 +393,6 @@
         uniforms.uLens.value.set(lens.lx, lens.ly);
         uniforms.uCrit.value = options.crit ? 1 : 0;
         uniforms.uMap.value = Math.round(options.map);
-        uniforms.uSuper.value = options.supersample ? 1 : 0;
         uniforms.uLensLight.value = options.lensLight;
         uniforms.uExposure.value = options.exposure;
         uniforms.uRing.value = options.ring ? lens.b : 0;
@@ -350,14 +409,33 @@
         ctx.setNotes(notes.join('\n'));
       }
       // Critical curves (det A = 0) by marching squares on a grid, mapped through the lens equation to caustics.
+      // They are computed for the lens at the origin and translated with it (the lens equation is
+      // translation-invariant), so dragging the lens does not recompute them; the grid size is bucketed in
+      // steps of sqrt(2), so zooming recomputes them only now and then.
+      let causticKey = '';
       function computeCaustics() {
-        const R = Math.max(3 * lens.b + 1.5 * lens.gamma * 10, 1.5 * options.fov);
-        const N = 220, h = 2 * R / (N - 1), e = 0.25 * h;
+        caustics.position.set(lens.lx, lens.ly, 0);
+        const Rmin = Math.max(3 * lens.b + 1.5 * lens.gamma * 10, 1.5 * options.fov);
+        const R = Math.pow(2, Math.ceil(2 * Math.log2(Rmin)) / 2);
+        const key = JSON.stringify([lens.point, lens.b, lens.q, lens.pa, lens.gamma, lens.gpa, R]);
+        if (key === causticKey) return;
+        causticKey = key;
+        const L = { ...lens, lx: 0, ly: 0 };
+        computeCausticsAt(R, L);
+      }
+      function computeCausticsAt(R, lens) {
+        const N = 220, h = 2 * R / (N - 1);
         const det = new Float64Array(N * N), X = (i) => lens.lx - R + i * h, Y = (j) => lens.ly - R + j * h;
+        // One deflection per node of a grid with a one-node border; det A from central differences of
+        // neighbouring nodes (a fifth of the deflection evaluations of differencing at each node).
+        const M = N + 2, ax = new Float64Array(M * M), ay = new Float64Array(M * M);
+        for (let i = 0; i < M; i++) for (let j = 0; j < M; j++) {
+          const a = deflection(X(i - 1), Y(j - 1), lens);
+          ax[i * M + j] = a[0]; ay[i * M + j] = a[1];
+        }
         for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          const x = X(i), y = Y(j);
-          const a1 = deflection(x + e, y, lens), a0 = deflection(x - e, y, lens), b1 = deflection(x, y + e, lens), b0 = deflection(x, y - e, lens);
-          const axx = (a1[0] - a0[0]) / (2 * e), ayx = (a1[1] - a0[1]) / (2 * e), axy = (b1[0] - b0[0]) / (2 * e), ayy = (b1[1] - b0[1]) / (2 * e);
+          const e = (i + 2) * M + j + 1, w = i * M + j + 1, n = (i + 1) * M + j + 2, s = (i + 1) * M + j;
+          const axx = (ax[e] - ax[w]) / (2 * h), ayx = (ay[e] - ay[w]) / (2 * h), axy = (ax[n] - ax[s]) / (2 * h), ayy = (ay[n] - ay[s]) / (2 * h);
           det[i * N + j] = (1 - axx) * (1 - ayy) - axy * ayx;
         }
         const pts = [];
@@ -428,9 +506,13 @@
           // The renderer's logical size (what setViewport expects), not the canvas's CSS box.
           const size = r.getSize(new THREE.Vector2()), w = size.x, h = size.y;
           // The image only changes with the options or the window size: skip unchanged frames.
-          const frameKey = JSON.stringify(options) + w + 'x' + h + r.getPixelRatio();
+          // While the lens is being dragged or a slider moves, draw one sample per pixel; 150 ms after the last
+          // change, redraw once with 2 x 2 supersampling.
+          const settled = performance.now() - lastChange > 150;
+          const frameKey = JSON.stringify(options) + w + 'x' + h + r.getPixelRatio() + settled;
           if (frameKey === lastFrameKey) return;
           lastFrameKey = frameKey;
+          uniforms.uSuper.value = options.supersample && settled ? 1 : 0;
           const pr = r.getPixelRatio();
           uniforms.uCentre.value.set(0, 0);
           uniforms.uFov.value = options.fov;
@@ -470,6 +552,7 @@
             `mass inside the ring 10^${Math.log10(phys.massInRing).toFixed(2)} M_sun`,
             `D_l ${(phys.Dl / MPC).toFixed(1)}, D_s ${(phys.Ds / MPC).toFixed(1)}, D_ls ${(phys.Dls / MPC).toFixed(1)} Mpc`,
             `Sigma_cr ${phys.SigmaCr.toFixed(2)} kg/m^2;  ${causticInfo}`,
+            skyInfo,
           ];
           return lines;
         },
@@ -483,6 +566,8 @@
           renderer.debug.onShaderError = previousHandler || null;
           material.dispose();
           srcTexture.dispose();
+          cellTexture.dispose();
+          if (indexTexture) indexTexture.dispose();
           caustics.geometry.dispose();
         },
       };

@@ -16,6 +16,7 @@ package Metrics "Named metrics, finite-difference metric derivatives and curvatu
 <tr><td><a href=\"modelica://GeneralRelativity.Metrics.flrw\">flrw</a></td><td>{ct, x, y, z} comoving, spatially flat</td><td>{ct<sub>0</sub>, n} or {ct<sub>0</sub>, n, H}</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Metrics.flrwCurved\">flrwCurved</a></td><td>{ct, r, &theta;, &phi;} comoving</td><td>{ct<sub>0</sub>, n, k}</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Metrics.kerrSchild\">kerrSchild</a></td><td>{ct, x, y, z} Kerr-Schild, regular at the horizon</td><td>{r<sub>s</sub>}, {r<sub>s</sub>, a} or {r<sub>s</sub>, a, r<sub>Q</sub>}</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Metrics.binaryKerrSchild\">binaryKerrSchild</a></td><td>{ct, x, y, z} two superposed Schwarzschild holes in Kerr-Schild form (approximate binary)</td><td>{m<sub>1</sub>, m<sub>2</sub>, x<sub>1</sub>, y<sub>1</sub>, z<sub>1</sub>, x<sub>2</sub>, y<sub>2</sub>, z<sub>2</sub>}</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Metrics.isotropicSchwarzschild\">isotropicSchwarzschild</a></td><td>{ct, x, y, z} isotropic</td><td>{r<sub>s</sub>}</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Metrics.ppn\">ppn</a></td><td>{ct, x, y, z} isotropic PPN gauge</td><td>{r<sub>s</sub>, &gamma;, &beta;}</td></tr>
 </table>

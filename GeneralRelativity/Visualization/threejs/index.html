@@ -58,6 +58,7 @@
 <!-- Visualization styles are plain scripts (not modules) so they load from disk; each registers itself in
      window.GRStyles. Add a style by dropping a file in styles/ and listing it here. -->
 <script>window.GRStyles = [];</script>
+<script src="styles/canvas2d.js"></script>
 <script src="styles/embedding.js"></script>
 <script src="styles/river.js"></script>
 <script src="styles/river3d.js"></script>
@@ -67,6 +68,13 @@
 <script src="styles/twins.js"></script>
 <script src="styles/lensing.js"></script>
 <script src="styles/lensfit.js"></script>
+<script src="styles/cosmos.js"></script>
+<script src="styles/horizons.js"></script>
+<script src="styles/cmb.js"></script>
+<!-- Offline rendering to video or images (the Render button); installed by the core below. -->
+<script src="render.js"></script>
+<!-- The sound of a merger's chirp (gravitational-wave strain as audio); installed by the core below. -->
+<script src="audio.js"></script>
 </head>
 <body>
 <div id="layout">
@@ -159,6 +167,8 @@ let link = null;
 let playing = false;
 let clock = 0, tStart = 0, tEnd = 0;
 let sceneT0 = 0, sceneT1 = 0;   // time range of the scene's samples
+let rendering = false;          // an offline render (render.js) drives the frames
+const sceneHooks = [], frameHooks = [];   // plug-ins (render.js, audio.js): called on scene load and every frame
 const hiddenTracks = new Set();  // bodies switched off in the legend, by name (kept across styles)
 
 function setTimeRange(t0, t1) {
@@ -169,6 +179,7 @@ function setTimeRange(t0, t1) {
 let sceneSize = 10;
 
 function resize() {
+  if (rendering) return;   // the render fixes the drawing-buffer size
   const w = Math.max(1, view.clientWidth), h = Math.max(1, view.clientHeight);
   // false: leave CSS sizing to the stylesheet; only the drawing buffer follows the panel.
   renderer.setSize(w, h, false);
@@ -300,6 +311,8 @@ function makeCtx() {
     THREE, renderer, camera, controls, scene3,
     data, sceneSize, extent: sceneExtent(),
     get clock() { return clock; }, get tStart() { return tStart; }, get tEnd() { return tEnd; }, get playing() { return playing; },
+    // True during an offline render: progressive styles skip their waits for stillness and report converged().
+    get rendering() { return rendering; },
     referenceRadius: data.header.referenceRadius || 1,
     options: optionValues[styleDef.id],
     colormap, logRange, drawScale, clearScale, fmt, sampler, planeXYZ, toWorld, timeOf,
@@ -404,7 +417,7 @@ function buildTracks() {
     // The trail has one spare vertex for the interpolated head.
     const trail = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points.concat([points[0].clone()])), new THREE.LineBasicMaterial({ color }));
     trail.name = 'trail';
-    const radius = style.bodyRadius ? style.bodyRadius() : Math.max(0.012 * sceneSize, 0.15 * (data.header.referenceRadius || 1));
+    const radius = style.bodyRadius ? style.bodyRadius() : Math.max(0.009 * sceneSize, 0.11 * (data.header.referenceRadius || 1));
     const body = new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 20), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.7, roughness: 0.3 }));
     body.name = 'body';
     const halo = new THREE.Mesh(new THREE.SphereGeometry(radius * 2.2, 24, 16), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.18, depthWrite: false }));
@@ -542,10 +555,13 @@ function populateStyleSelect() {
   }
 }
 
+// An option's default may depend on the scene (a function of data); such defaults are re-applied when a
+// scene is loaded, other options keep the values chosen earlier.
+function optionDefault(o) { return typeof o.value === 'function' ? o.value(data) : o.value; }
 function defaultsFor(def) {
   if (!optionValues[def.id]) {
     optionValues[def.id] = {};
-    for (const o of def.options || []) optionValues[def.id][o.id] = o.value;
+    for (const o of def.options || []) optionValues[def.id][o.id] = optionDefault(o);
   }
   return optionValues[def.id];
 }
@@ -553,6 +569,8 @@ function defaultsFor(def) {
 function buildOptionsUI() {
   ui.styleOptions.textContent = '';
   for (const o of styleDef.options || []) {
+    // An option may apply to some scenes only (show(data) false hides it).
+    if (o.show && !o.show(data)) continue;
     const row = document.createElement('div');
     row.className = 'option';
     const label = document.createElement('label');
@@ -660,13 +678,15 @@ function loadScene(text) {
   sceneSize = size || 10;
   drawProfile(data.profile);
   populateStyleSelect();
+  for (const def of STYLE_DEFS) if (optionValues[def.id]) for (const o of def.options || []) if (typeof o.value === 'function') optionValues[def.id][o.id] = optionDefault(o);
   const wanted = data.view && data.view.style;
   if (data.view && data.view.options) {
     const def = STYLE_DEFS.find(d => d.id === wanted);
     if (def) Object.assign(defaultsFor(def), data.view.options);
   }
   activateStyle(wanted || 'embedding');
-  setPlaying(data.trackSpecs.length > 0);
+  setPlaying(data.trackSpecs.length > 0 || !!(style && style.ownClock));
+  for (const hook of sceneHooks) hook(data);
 }
 
 function drawProfile(profile) {
@@ -738,9 +758,10 @@ function renderFrame(dt) {
 let last = performance.now();
 function animate(now) {
   requestAnimationFrame(animate);
+  if (rendering) { last = now; return; }   // render.js renders the frames itself
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (data && style && playing && tracks.length && tEnd > tStart) {
+  if (data && style && playing && (tracks.length || style.ownClock) && tEnd > tStart) {
     // At the default speed of 40 the whole run plays in about a minute.
     clock += dt * (tEnd - tStart) / 60 * Number(ui.speed.value) / 40;
     if (clock >= tEnd) {
@@ -749,16 +770,70 @@ function animate(now) {
     updateBodies();
   }
   renderFrame(dt);
+  for (const hook of frameHooks) hook(clock, playing);
 }
 populateStyleSelect();
 requestAnimationFrame(animate);
+// Plug-ins: offline rendering (render.js: the core fixes the size and camera, and the renderer steps the
+// clock) and the sound of a merger (audio.js).
+{
+  let saved = null;
+  const pluginApi = {
+    THREE, renderer, camera, controls, view, header: document.querySelector('header'), aside: document.querySelector('aside'), fmt,
+    data: () => data,
+    clock: () => clock,
+    playing: () => playing,
+    timeOf: (sample) => timeOf(sample),
+    onScene: (fn) => sceneHooks.push(fn),
+    onFrame: (fn) => frameHooks.push(fn),
+    hasScene: () => !!(data && style),
+    style: () => style,
+    options: () => (styleDef ? optionValues[styleDef.id] : null),
+    styleLabel: () => (styleDef ? styleDef.label : ''),
+    styleId: () => (styleDef ? styleDef.id : ''),
+    sceneName: () => (data ? data.header.name || 'scene' : 'scene'),
+    timeRange: () => [tStart, tEnd],
+    clockLabel: () => (style && style.clockLabel) || 't',
+    setClock: (t) => { clock = t; updateBodies(); },
+    renderFrame: (dt) => renderFrame(dt),
+    begin(width, height) {
+      saved = { pixelRatio: renderer.getPixelRatio(), clock, playing, damping: controls.enableDamping, enabled: controls.enabled, fit: renderer.domElement.style.objectFit };
+      setPlaying(false);
+      rendering = true;
+      // The camera stays where it is; only the drawing buffer changes (shown letterboxed in the view).
+      controls.enableDamping = false;
+      controls.enabled = false;
+      renderer.setPixelRatio(1);
+      renderer.setSize(width, height, false);
+      renderer.domElement.style.objectFit = 'contain';
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      if (style && style.resize) style.resize(width, height);
+    },
+    end() {
+      if (!saved) return;
+      rendering = false;
+      renderer.setPixelRatio(saved.pixelRatio);
+      renderer.domElement.style.objectFit = saved.fit;
+      controls.enableDamping = saved.damping;
+      controls.enabled = saved.enabled;
+      resize();
+      clock = saved.clock;
+      if (data && style) updateBodies();
+      setPlaying(saved.playing);
+      saved = null;
+    },
+  };
+  if (window.GRRender) window.GRRender.install(pluginApi);
+  if (window.GRAudio) window.GRAudio.install(pluginApi);
+}
 // Automation hook (used by the regression screenshots): drive the viewer without the file picker.
 window.GRViewer = {
   loadScene, activateStyle, setPlaying, renderFrame,
   setClock: (t) => { clock = t; updateBodies(); },
   setOption: (id, v) => { const o = (styleDef.options || []).find(x => x.id === id); if (o) setOption(o, v); },
   get clock() { return clock; }, get tStart() { return tStart; }, get tEnd() { return tEnd; },
-  get style() { return style; }, renderer, camera, controls,
+  get style() { return style; }, get data() { return data; }, renderer, camera, controls,
 };
 </script>
 </body>

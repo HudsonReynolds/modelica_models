@@ -25,6 +25,7 @@ model GeneralRelativityIndexTests "Inline index-notation evaluator: contractions
   end maxAbs4;
 
   function run
+    input Real t "Unused; a time argument keeps the call out of the front end's constant evaluation";
     output Boolean passed;
   protected
     import GeneralRelativity.IndexNotation.scalar;
@@ -163,6 +164,7 @@ model GeneralRelativityIndexTests "Inline index-notation evaluator: contractions
   end run;
 
   function runUserTensors "User-defined tensors on the Schwarzschild system and on flat space"
+    input Real t "Unused; a time argument keeps the call out of the front end's constant evaluation";
     output Boolean passed;
   protected
     import GeneralRelativity.IndexNotation.scalar;
@@ -236,10 +238,17 @@ model GeneralRelativityIndexTests "Inline index-notation evaluator: contractions
     passed := true;
   end runUserTensors;
 
-  parameter Boolean passed = run();
-  parameter Boolean passedUser = runUserTensors();
-equation
-  assert(passed, "GeneralRelativity index-notation assertions did not complete");
-  assert(passedUser, "GeneralRelativity index-notation user-tensor assertions did not complete");
+  // Run by the compiled model at initialization, with time as an argument: a constant call (a binding, or run()
+  // without arguments) is evaluated by the omc front end in its interpreter while instantiating, and with this
+  // string-parsing code OpenModelica 1.28 then crashes when it exits (exit code 139 after the tests pass).
+  discrete Boolean passed(start = false, fixed = true);
+  discrete Boolean passedUser(start = false, fixed = true);
+algorithm
+  when initial() then
+    passed := run(time);
+    passedUser := runUserTensors(time);
+    assert(passed, "GeneralRelativity index-notation assertions did not complete");
+    assert(passedUser, "GeneralRelativity index-notation user-tensor assertions did not complete");
+  end when;
   annotation(experiment(StartTime = 0.0, StopTime = 1.0, Tolerance = 1.0e-8, Interval = 0.1));
 end GeneralRelativityIndexTests;

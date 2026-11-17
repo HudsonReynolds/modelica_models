@@ -83,7 +83,7 @@
       const travColour = new THREE.Color(travSpec && travSpec.color || '#ffb454');
       const sceneOptions = (data.view && data.view.options) || {};
       let trip = null;
-      const bodyR = () => 0.012 * Math.max(trip.T, trip.D + 2);
+      const bodyR = () => 0.009 * Math.max(trip.T, trip.D + 2);
       const homeBody = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: homeColour }));
       const travBody = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: travColour }));
       const nowLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),

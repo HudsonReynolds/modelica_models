@@ -30,7 +30,7 @@ model LensInversion "Lens inversion on a synthetic image: read the Einstein radi
   parameter Boolean checkRecovery = true "false switches off the assertions that grade the fit against the truth";
   parameter String sceneFile = "lens_inversion.ndjson" "Scene file name";
   parameter String sceneDirectory = "" "Output folder; empty uses GR_SCENE_DIR, else ~/Documents/Visualization";
-  parameter String imageFile = "lens_inversion_observed.mat" "The observed image is also saved here as the bordered matrix lensImage (MATLAB v4), the input of LensInversionFromFile; empty to skip";
+  parameter String imageFile = "lens_inversion_observed.mat" "The observed image is also saved here as the bordered matrix lensImage (MATLAB v6), the input of LensInversionFromFile; empty to skip";
   final parameter Real arcsec = GeneralRelativity.Constants.arcsec;
   final parameter Real deg = GeneralRelativity.Constants.pi / 180.0;
   final parameter Real Dl(unit = "m") = GeneralRelativity.Lensing.angularDiameterDistance(0.0, zLens, H0, OmegaM);
@@ -139,12 +139,13 @@ initial algorithm
      "source x (arcsec)", "source y (arcsec)", "source I_e", "source r_e (arcsec)", "source q", "source angle (deg)", "Sersic n"},
     initialDisplay, fittedDisplay, sigmaDisplay, truthDisplay, chi2History, massHistorySolar, massSolar, massSigmaSolar, massInitialSolar,
     trueMassInRingSolar, lens[1] / arcsec, {Dl, Ds, Dls} / GeneralRelativity.Constants.Mpc, iterations, converged, pixels^2, explainedFinal, correlationFinal);
-  // The observation as one MATLAB v4 matrix (the v4 writer cannot append): u down the first column, v along the first row.
+  // The observation as one MATLAB matrix: u down the first column, v along the first row. Format v6: the v4 writer of
+  // OpenModelica 1.28 on macOS writes an empty file (readRealMatrix reads v4 and v6 alike).
   bordered[1, 1] := 0.0;
   bordered[1, 2:pixels + 1] := v / arcsec;
   bordered[2:pixels + 1, 1] := u / arcsec;
   bordered[2:pixels + 1, 2:pixels + 1] := observed;
-  saved := imageFile == "" or Modelica.Utilities.Streams.writeRealMatrix(imagePath, "lensImage", bordered, false, "4");
+  saved := imageFile == "" or Modelica.Utilities.Streams.writeRealMatrix(imagePath, "lensImage", bordered, false, "6");
   GeneralRelativity.Visualization.writeLens(path, if pointMass then "point" else "galaxy", massInApertureSolar, apertureKpc, zLens, zSource, H0, OmegaM,
     lens[4], lens[5] / deg, lens[6], lens[7] / deg, lens[1] / arcsec, {Dl, Ds, Dls} / GeneralRelativity.Constants.Mpc);
 equation

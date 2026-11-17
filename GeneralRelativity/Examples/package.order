@@ -3,6 +3,7 @@ SchwarzschildNewtonCartanOrbit
 SchwarzschildOrbitScene
 KerrOrbitScene
 TwinParadox
+BinaryMerger
 LightDeflection
 GalaxyLensing
 LensInversion
@@ -17,3 +18,5 @@ WeakFieldPoisson
 StarInterior
 PolytropeStar
 GravitationalWavePulse
+CosmicMicrowaveBackground
+CosmicExpansion

@@ -59,6 +59,10 @@ caller-chosen step per coordinate
 <td><a href=\"modelica://GeneralRelativity.Perturbation\">Perturbation</a></td></tr>
 <tr><td>Gravitational lensing: cosmological distances, Einstein radii, point-mass and galaxy deflections; lens inversion from a lensed image to the mass behind it</td>
 <td><a href=\"modelica://GeneralRelativity.Lensing\">Lensing</a></td></tr>
+<tr><td>Compact binaries: post-Newtonian inspiral with radiation reaction, quadrupole waveform, merger remnant and ringdown</td>
+<td><a href=\"modelica://GeneralRelativity.CompactBinaries\">CompactBinaries</a></td></tr>
+<tr><td>FLRW cosmology: Friedmann expansion, horizons, recombination, acoustic waves and the CMB power spectrum compared with Planck 2018</td>
+<td><a href=\"modelica://GeneralRelativity.Cosmology\">Cosmology</a></td></tr>
 <tr><td>Newtonian gravity as an affine connection (Newton-Cartan): clock form, spatial cometric, field equation</td>
 <td><a href=\"modelica://GeneralRelativity.NewtonCartan\">NewtonCartan</a></td></tr>
 <tr><td>Geodesic equation, replaceable-metric and replaceable-connection geodesic models</td>
