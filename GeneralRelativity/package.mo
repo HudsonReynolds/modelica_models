@@ -57,7 +57,7 @@ caller-chosen step per coordinate
 <td><a href=\"modelica://GeneralRelativity.StressEnergy\">StressEnergy</a></td></tr>
 <tr><td>Linearized gravity and gauge transformations, Newtonian limit, J2 and two-body potentials, post-Newtonian motion, PPN parameters and solar-system tests</td>
 <td><a href=\"modelica://GeneralRelativity.Perturbation\">Perturbation</a></td></tr>
-<tr><td>Gravitational lensing: cosmological distances, Einstein radii, point-mass and galaxy deflections</td>
+<tr><td>Gravitational lensing: cosmological distances, Einstein radii, point-mass and galaxy deflections; lens inversion from a lensed image to the mass behind it</td>
 <td><a href=\"modelica://GeneralRelativity.Lensing\">Lensing</a></td></tr>
 <tr><td>Newtonian gravity as an affine connection (Newton-Cartan): clock form, spatial cometric, field equation</td>
 <td><a href=\"modelica://GeneralRelativity.NewtonCartan\">NewtonCartan</a></td></tr>

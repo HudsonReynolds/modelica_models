@@ -19,6 +19,9 @@ package Examples "Worked models: Schwarzschild orbit and curvature, Newton-Carta
 <td>A Schwarzschild null geodesic's bending angle against 4GM/(c&sup2;b) and its higher orders.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.GalaxyLensing\">GalaxyLensing</a></td>
 <td>Galaxy-scale strong lensing: distances, Einstein radii, a microlensing light curve; interactive lensed sky in the viewer.</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Examples.LensInversion\">LensInversion</a>,
+<a href=\"modelica://GeneralRelativity.Examples.LensInversionFromFile\">LensInversionFromFile</a></td>
+<td>The inverse: from a lensed image (synthetic with a known mass, or read from a file) to the lens mass: ring radius, mass estimate, simulation, &chi;&sup2; and a least-squares fit with standard errors; observed, simulated and residual images in the viewer.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.SchwarzschildCurvature\">SchwarzschildCurvature</a></td>
 <td>Christoffel symbols against closed form, vacuum Ricci, Kretschmann, implied stress-energy.</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Examples.EarthJ2Orbit\">EarthJ2Orbit</a></td>

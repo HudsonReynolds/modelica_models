@@ -55,6 +55,7 @@ GeneralRelativityConnectionTests
 GeneralRelativityMetricTests
 GeneralRelativityVisualizationTests
 GeneralRelativityLensingTests
+GeneralRelativityLensInversionTests
 GeneralRelativityIndexTests
 MultirotorInnerLoopTests
 Cubs2EstimatorTests

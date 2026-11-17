@@ -18,9 +18,12 @@ checks it). Angles are in radians unless a name says otherwise.</p>
 <tr><td><a href=\"modelica://GeneralRelativity.Lensing.deflectionPointMass\">deflectionPointMass</a>, <a href=\"modelica://GeneralRelativity.Lensing.deflectionSIE\">deflectionSIE</a>, <a href=\"modelica://GeneralRelativity.Lensing.deflectionShear\">deflectionShear</a></td><td>Scaled deflections: point mass, singular isothermal ellipse (a galaxy), external shear</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Lensing.convergenceSIE\">convergenceSIE</a></td><td>&kappa; of the isothermal ellipse</td></tr>
 <tr><td><a href=\"modelica://GeneralRelativity.Lensing.pointMassImages\">pointMassImages</a></td><td>Both images of a point-mass lens and their magnifications</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Lensing.massInEinsteinRadius\">massInEinsteinRadius</a>, <a href=\"modelica://GeneralRelativity.Lensing.velocityDispersionSIS\">velocityDispersionSIS</a></td><td>The inverse problem's first step: the projected mass <code>&pi;(D<sub>l</sub>&theta;<sub>E</sub>)&sup2;&Sigma;<sub>cr</sub></code> inside a measured Einstein radius, and the isothermal galaxy's &sigma;</td></tr>
+<tr><td><a href=\"modelica://GeneralRelativity.Lensing.Inversion\">Inversion</a></td><td>Lens inversion: from a lensed image to the mass that made it, by simulating the image and fitting (least squares, with priors as a Kalman update)</td></tr>
 </table>
 <p><a href=\"modelica://GeneralRelativity.Examples.GalaxyLensing\">Examples.GalaxyLensing</a> writes a scene for the
 viewer's <b>lensing</b> style: a telescope-like image of lensed background galaxies whose lens mass,
-shape and redshifts are sliders.</p>
+shape and redshifts are sliders. <a href=\"modelica://GeneralRelativity.Examples.LensInversion\">Examples.LensInversion</a>
+runs the problem backwards on such an image and writes a scene for the <b>lensfit</b> style.</p>
 </html>"));
 end Lensing;

@@ -63,7 +63,9 @@ artifacts; they do not own alternate copies of these models.
   wave model; and a newline-delimited JSON scene stream rendered by the
   Three.js viewer in `GeneralRelativity/Visualization/threejs/`, which shows
   any scene as an embedding surface, the river model, a time-dilation clock
-  grid, a 2+1 spacetime diagram with light cones, or a GPU ray tracer.
+  grid, a 2+1 spacetime diagram with light cones, a lensed deep field, or a
+  GPU ray tracer; and lens inversion, which recovers the mass behind a lensed
+  image by simulating and fitting it (`Lensing.Inversion`).
 - `Control/`: reusable control laws and sampled controller building blocks,
   including the multirotor SE_2(3)/SO(3) log-linear controller and the
   `Multirotor.RateLoop` and `Multirotor.Allocation` inner-loop building blocks.

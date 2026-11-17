@@ -31,14 +31,22 @@ the lapse, the river speed, frame dragging and light-cone speeds of
 (<a href=\"modelica://GeneralRelativity.Visualization.writeTrack\">writeTrack</a>);</li>
 <li><code>sample</code>: one point of a trajectory with scalars attached, optionally tagged
 with its track (<a href=\"modelica://GeneralRelativity.Visualization.writeSample\">writeSample</a>).
-The viewer animates every track against coordinate time <code>x[1]/c</code>.</li>
+The viewer animates every track against coordinate time <code>x[1]/c</code>;</li>
+<li><code>lens</code>: a gravitational lens (model, mass, redshifts, shape) for the lensing style
+(<a href=\"modelica://GeneralRelativity.Visualization.writeLens\">writeLens</a>);</li>
+<li><code>lensImage</code> and <code>lensFit</code>: the images and the result of a lens inversion for the lensfit style
+(<a href=\"modelica://GeneralRelativity.Visualization.writeLensImage\">writeLensImage</a>,
+<a href=\"modelica://GeneralRelativity.Visualization.writeLensFit\">writeLensFit</a>).</li>
 </ul>
 <h4>Visualization styles</h4>
 <p>The viewer shows the same scene in interchangeable styles: <b>embedding</b> (3D, embedded
 equatorial plane), <b>river</b> (space flowing into the hole, Hamilton and Lisle's river model),
 <b>river3d</b> (the same flow as a 3D grid of falling shells), <b>clocks</b> (a time-contracting grid of clocks running at the lapse), <b>spacetime</b> (a 2+1 diagram of
 worldlines with light cones) <b>raytrace</b> (GPU ray tracing of null geodesics), <b>lensing</b> (a telescope-like image of
-galaxies lensed by a foreground galaxy, from <a href=\"modelica://GeneralRelativity.Visualization.writeLens\">writeLens</a>) and <b>twins</b> (an interactive twin-paradox
+galaxies lensed by a foreground galaxy, from <a href=\"modelica://GeneralRelativity.Visualization.writeLens\">writeLens</a>),
+<b>lensfit</b> (observed, simulated and residual images of a lens inversion with its cost and mass history, from
+<a href=\"modelica://GeneralRelativity.Visualization.writeLensImage\">writeLensImage</a> and
+<a href=\"modelica://GeneralRelativity.Visualization.writeLensFit\">writeLensFit</a>) and <b>twins</b> (an interactive twin-paradox
 Minkowski diagram). The slice-based styles
 drop one spatial dimension. The easiest way to provide everything is one
 <a href=\"modelica://GeneralRelativity.Visualization.SceneRecorder\">SceneRecorder</a> component per

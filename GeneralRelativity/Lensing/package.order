@@ -2,8 +2,11 @@ angularDiameterDistance
 criticalDensity
 einsteinRadiusPointMass
 einsteinRadiusSIS
+massInEinsteinRadius
+velocityDispersionSIS
 deflectionPointMass
 deflectionSIE
 convergenceSIE
 deflectionShear
 pointMassImages
+Inversion

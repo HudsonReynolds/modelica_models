@@ -11,6 +11,7 @@ scoring. Keep temporary builds, downloads and caches in a task-specific director
 | ESKF, PX4 EKF2 and ArduPilot EKF3 comparison | [Estimator replay tools](estimator_comparison/README.md) |
 | Build the browsable Modelica reference | [Documentation publishing](../docs/publishing.md) |
 | Export SLAM snapshots for a browser consumer | [SLAM export](../docs/slam-export.md) |
+| Turn a picture of a gravitational lens into the matrix file that `GeneralRelativity.Examples.LensInversionFromFile` fits | `python tools/lens_image_to_mat.py --help` |
 
 `ci.py` implements regression execution used by the CLI. `trajectory_compare.py`
 supports mission comparisons. `modelica_models_cli/` owns command dispatch,

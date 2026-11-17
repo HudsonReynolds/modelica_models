@@ -5,6 +5,8 @@ KerrOrbitScene
 TwinParadox
 LightDeflection
 GalaxyLensing
+LensInversion
+LensInversionFromFile
 SchwarzschildCurvature
 IndexNotationDemo
 EarthJ2Orbit

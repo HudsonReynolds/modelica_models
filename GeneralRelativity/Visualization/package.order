@@ -14,6 +14,8 @@ writeSpacetimeSlice
 writeMetric
 writeView
 writeLens
+writeLensImage
+writeLensFit
 writeTrack
 writeSample
 tidalMagnitudeSlice
