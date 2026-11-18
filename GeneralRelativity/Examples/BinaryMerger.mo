@@ -35,7 +35,8 @@ model BinaryMerger "Two black holes (or neutron stars) spiral together under pos
   final parameter Real Rremnant = if remnantIsBlackHole then 0.0 else 1.2 * nsRadiusKm * 1.0e3 / lengthUnit "Radius of a neutron-star remnant in M";
   final parameter Real omegaQNM = CompactBinaries.ringdownOmega(chiF) / Mf "Ringdown angular frequency (black-hole remnant)";
   final parameter Real tauQNM = 2.0 * CompactBinaries.ringdownQuality(chiF) / CompactBinaries.ringdownOmega(chiF) * Mf "Ringdown damping time";
-  final parameter Real tAfter = if remnantIsBlackHole then 12.0 * tauQNM else 100.0 * M "Time simulated after the merger";
+  final parameter Real tAfter = if remnantIsBlackHole then max(12.0 * tauQNM, if neutronStars then 500.0 * M else 0.0) else 100.0 * M
+    "Time simulated after the merger: the ringdown; for a neutron-star merger at least 500 M, so the viewer can show the remnant collapsing and the debris settling into a torus";
   final parameter Real tPeters = CompactBinaries.mergerTimePeters(r0, M, eta) * (1.0 - (rMerge / r0)^4)
     "Leading-order (Newtonian + quadrupole) time from r0 to rMerge, for comparison";
   final parameter Real vCircular0 = CompactBinaries.circularOrbitSpeed(r0, M, eta, pnOrder) "Speed of a circular orbit at r0 (exact for the conservative dynamics)";
@@ -162,8 +163,10 @@ drawn as a star of 1.2 times the radius.</li>
 amplitude and phase at the merger, for 12 damping times.</li>
 </ul>
 <p><b>Not modelled:</b> spins of the progenitors, tidal deformation and matter of neutron stars (they are
-point masses with a radius), the post-Newtonian breakdown in the last orbit (the plunge here is only
-qualitative), the merger itself (the bodies jump to the remnant at the origin) and recoil.</p>
+point masses with a radius; from this record alone the viewer's ray tracer sketches their tidal shapes, the
+arms of matter they shed, the collapsing remnant and the debris torus, see the viewer's README), the post-Newtonian breakdown in the last
+orbit (the plunge here is only qualitative), the merger itself (the bodies jump to the remnant at the origin)
+and recoil.</p>
 <p><b>Timing.</b> With the defaults (r0 = 14 M, gravitational-wave frequency 17.5 Hz at the start) the holes
 merge after 1708 M (0.55 s), against <code>tPeters</code> = 3030 M for a Newtonian orbit with quadrupole
 radiation (<code>pnOrder = 0</code> reproduces that to 0.3%). The 2PN conservative terms flatten the binding
@@ -172,7 +175,8 @@ order, so the last orbits shrink faster; a full higher-order inspiral from the s
 effective-one-body) takes about 3400 M. The equations of motion here are the standard 2.5PN ones of
 N-body post-Newtonian codes; use them for the shape of the chirp and the plunge, not for phase-accurate
 waveforms. The neutron-star default (1.4 + 1.3 solar masses, 12 km) touches at 6.0 M after 5511 M (73 ms; it starts at a gravitational-wave frequency of 310 Hz)
-and its 2.64 solar-mass remnant collapses to a black hole.</p>
+and its 2.64 solar-mass remnant collapses to a black hole; the scene then continues for 500 M (6.6 ms), long
+enough for the viewer to show the remnant collapsing and the debris settling into a torus.</p>
 <p>The scene (<code>binary_merger.ndjson</code>, or <code>binary_neutron_star_merger.ndjson</code>) opens in
 the viewer's ray tracer, which draws the two holes with the superposed Kerr-Schild metric
 <a href=\"modelica://GeneralRelativity.Metrics.binaryKerrSchild\">Metrics.binaryKerrSchild</a> (a snapshot at each

@@ -35,6 +35,24 @@ def rate_text(fps):
     return text
 
 
+def encode(frames, out, fps):
+    """Make a video from frames/frame_%05d.png with ffmpeg: MPEG-2 for .mpeg/.mpg, else H.264. Returns
+    (ok, error text)."""
+    mpeg = out.lower().endswith(('.mpeg', '.mpg'))
+    if mpeg and rate_text(fps) not in MPEG_RATES:
+        return False, 'MPEG-2 allows only %s fps' % ', '.join(MPEG_RATES)
+    rate = MPEG_RATES[rate_text(fps)] if mpeg else rate_text(fps)
+    command = [FFMPEG, '-y', '-hide_banner', '-loglevel', 'error', '-framerate', rate,
+               '-i', os.path.join(frames, 'frame_%05d.png')]
+    if mpeg:
+        # MPEG-2 video in an MPEG program stream; -q:v 2 is near the best quality the format allows.
+        command += ['-c:v', 'mpeg2video', '-q:v', '2', '-pix_fmt', 'yuv420p', '-f', 'mpeg', out]
+    else:
+        command += ['-c:v', 'libx264', '-crf', '16', '-preset', 'slow', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out]
+    result = subprocess.run(command, capture_output=True, text=True)
+    return result.returncode == 0, result.stderr.strip()[-600:]
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     server_version = 'GRRenderHelper/1'
 
@@ -76,7 +94,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.fail(403, 'unexpected Host header')
         if self.path.split('?')[0] == '/api/info':
             return self.reply(200, {'ok': True, 'token': TOKEN, 'ffmpeg': bool(FFMPEG),
-                                    'defaultFolder': '~/Documents/Visualization/renders'})
+                                    'defaultFolder': '~/Documents/Visualization/renders', 'root': os.path.realpath(self.directory)})
         return super().do_GET()
 
     def do_POST(self):
@@ -148,17 +166,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.reply(200, {'ok': True, 'message': '%d PNG frames in %s' % (current['count'], current['frames'])})
         mpeg = current['format'] == 'h-mpeg'
         out = os.path.join(current['folder'], current['name'] + ('.mpeg' if mpeg else '.mp4'))
-        rate = MPEG_RATES[rate_text(current['fps'])] if mpeg else rate_text(current['fps'])
-        command = [FFMPEG, '-y', '-hide_banner', '-loglevel', 'error', '-framerate', rate,
-                   '-i', os.path.join(current['frames'], 'frame_%05d.png')]
-        if mpeg:
-            # MPEG-2 video in an MPEG program stream; -q:v 2 is near the best quality the format allows.
-            command += ['-c:v', 'mpeg2video', '-q:v', '2', '-pix_fmt', 'yuv420p', '-f', 'mpeg', out]
-        else:
-            command += ['-c:v', 'libx264', '-crf', '16', '-preset', 'slow', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out]
-        result = subprocess.run(command, capture_output=True, text=True)
-        if result.returncode != 0:
-            return self.fail(500, 'ffmpeg failed (frames kept in %s): %s' % (current['frames'], result.stderr.strip()[-600:]))
+        ok, error = encode(current['frames'], out, current['fps'])
+        if not ok:
+            return self.fail(500, 'ffmpeg failed (frames kept in %s): %s' % (current['frames'], error))
         if not current['keep']:
             shutil.rmtree(current['frames'], ignore_errors=True)
         size = os.path.getsize(out) / 1e6

@@ -89,6 +89,7 @@
     <label><input type="checkbox" id="showTrail" checked> trail</label>
     <label><input type="checkbox" id="showLink" checked> link</label>
     <label><input type="checkbox" id="loop" checked> loop</label>
+    <label title="A legend of the shown bodies in the picture itself (so rendered videos include it), when two or more are shown"><input type="checkbox" id="showLegend" checked> legend</label>
   </header>
   <div id="view">
     <div id="drop">Open or drop a scene file written by GeneralRelativity.Visualization (for example schwarzschild_scene.ndjson).</div>
@@ -142,6 +143,7 @@ const ui = {
   showTrail: document.getElementById('showTrail'),
   showLink: document.getElementById('showLink'),
   loop: document.getElementById('loop'),
+  showLegend: document.getElementById('showLegend'),
   readout: document.getElementById('readout'),
   legend: document.getElementById('legend'),
   styleDescription: document.getElementById('styleDescription'),
@@ -569,8 +571,8 @@ function defaultsFor(def) {
 function buildOptionsUI() {
   ui.styleOptions.textContent = '';
   for (const o of styleDef.options || []) {
-    // An option may apply to some scenes only (show(data) false hides it).
-    if (o.show && !o.show(data)) continue;
+    // An option may apply to some scenes, or some values of the other options, only (show(data, values) false hides it).
+    if (o.show && !o.show(data, optionValues[styleDef.id])) continue;
     const row = document.createElement('div');
     row.className = 'option';
     const label = document.createElement('label');
@@ -615,6 +617,8 @@ function setOption(o, v, live = false) {
   // A style can apply an option in place; otherwise it is rebuilt (sliders: on release).
   if (style.onOption && style.onOption(o.id, v)) {
     ui.styleReadout.textContent = style.readout ? style.readout().join('\n') : '';
+    // A switch or a choice can show or hide other options.
+    if (!live && o.type !== 'range' && (styleDef.options || []).some(x => x.show)) buildOptionsUI();
     return;
   }
   if (!live) activateStyle(styleDef.id, false);
@@ -728,13 +732,15 @@ function setPlaying(on) {
   ui.play.textContent = playing ? 'Pause' : 'Play';
 }
 
+let sceneFileName = '';   // the scene's file name when it came from a file (for the Render dialog's command line)
 ui.file.addEventListener('change', e => {
   const f = e.target.files[0];
-  if (f) f.text().then(loadScene);
+  if (f) f.text().then(text => { loadScene(text); sceneFileName = f.name; });
 });
 ['dragover', 'drop'].forEach(type => view.addEventListener(type, e => {
   e.preventDefault();
-  if (type === 'drop' && e.dataTransfer.files[0]) e.dataTransfer.files[0].text().then(loadScene);
+  const f = type === 'drop' && e.dataTransfer.files[0];
+  if (f) f.text().then(text => { loadScene(text); sceneFileName = f.name; });
 }));
 ui.styleSelect.addEventListener('change', () => { if (data) activateStyle(ui.styleSelect.value); });
 ui.play.addEventListener('click', () => {
@@ -748,11 +754,95 @@ ui.time.addEventListener('input', () => {
 });
 [ui.showPath, ui.showTrail, ui.showLink].forEach(el => el.addEventListener('change', applyVisibility));
 
+// The legend in the picture: the shown bodies with their colours, names and a short description, drawn into
+// the WebGL frame after the style (so offline renders include it) when two or more bodies are shown and the
+// style shows bodies or tracks (a style can force it with frameLegend: true or false). Top right; redrawn only
+// when its content or the frame size changes.
+const frameLegend = (() => {
+  const canvas = document.createElement('canvas');
+  // WebGL 2 gives a texture fixed storage at its first upload, so a canvas redrawn at another size (the render
+  // dialog's resolution, a resized window) would only overwrite part of it and leave the old legend showing:
+  // a new texture for every new size.
+  const makeTexture = () => {
+    const t = new THREE.CanvasTexture(canvas);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.generateMipmaps = false;
+    t.minFilter = t.magFilter = THREE.LinearFilter;
+    return t;
+  };
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: makeTexture(), transparent: true, depthTest: false, depthWrite: false, toneMapped: false }));
+  const scene = new THREE.Scene();
+  scene.add(mesh);
+  const cam = new THREE.OrthographicCamera(0, 1, 1, 0, -1, 1);
+  const size = new THREE.Vector2();
+  let key = '';
+  // A short description: the whole one if short, else its first clause (before "; " or ": ", or before ", " when
+  // that clause ends in a parenthesis, as in "Newton-Cartan geodesic (Newtonian gravity), same ...").
+  const brief = (d) => {
+    d = (d || '').trim();
+    if (d.length <= 60) return d;
+    const m = d.match(/^(.{4,60}?)(;|:) /) || d.match(/^(.{4,60}?\)), /);
+    return m ? m[1] : '';
+  };
+  function draw(entries, W, H) {
+    const u = Math.max(0.75, Math.min(W, H) / 720);
+    const g = canvas.getContext('2d');
+    const nameFont = `600 ${Math.round(13 * u)}px system-ui, sans-serif`, descFont = `${Math.round(11.5 * u)}px system-ui, sans-serif`;
+    let width = 0;
+    for (const e of entries) {
+      g.font = nameFont; width = Math.max(width, g.measureText(e.name).width);
+      g.font = descFont; if (e.desc) width = Math.max(width, g.measureText(e.desc).width);
+    }
+    const pad = 10 * u, dot = 5 * u, indent = 2 * dot + 8 * u, row = (e) => (e.desc ? 34 : 20) * u;
+    const w = Math.ceil(width + indent + 2 * pad), h = Math.ceil(entries.reduce((sum, e) => sum + row(e), 0) + 2 * pad - 4 * u);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w; canvas.height = h;
+      mesh.material.map.dispose();
+      mesh.material.map = makeTexture();
+    }
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = 'rgba(11, 14, 20, 0.62)';
+    g.beginPath(); g.roundRect(0, 0, w, h, 6 * u); g.fill();
+    let y = pad;
+    for (const e of entries) {
+      g.fillStyle = e.colour;
+      g.beginPath(); g.arc(pad + dot, y + 8 * u, dot, 0, 2 * Math.PI); g.fill();
+      g.textBaseline = 'top';
+      g.font = nameFont; g.fillStyle = '#e6e9ef'; g.fillText(e.name, pad + indent, y);
+      if (e.desc) { g.font = descFont; g.fillStyle = '#9aa3b5'; g.fillText(e.desc, pad + indent, y + 17 * u); }
+      y += row(e);
+    }
+    mesh.material.map.needsUpdate = true;
+    const margin = 14 * u;
+    mesh.scale.set(w, h, 1);
+    mesh.position.set(W - margin - w / 2, H - margin - h / 2, 0);
+    cam.right = W; cam.top = H; cam.updateProjectionMatrix();
+  }
+  return {
+    render(r) {
+      if (!ui.showLegend.checked || !data || !style || !tracks) return;
+      const wanted = style.frameLegend !== undefined ? style.frameLegend : !(style.hidesBodies && style.hidesTracks);
+      const shown = tracks.filter(t => !t.hidden);
+      if (!wanted || shown.length < 2) return;
+      r.getDrawingBufferSize(size);
+      const entries = shown.map(t => ({ name: t.spec.name || 'body', desc: brief(t.spec.description), colour: '#' + t.color.getHexString() }));
+      const k = [size.x, size.y, JSON.stringify(entries)].join('/');
+      if (k !== key) { key = k; draw(entries, size.x, size.y); }
+      const autoClear = r.autoClear;
+      r.autoClear = false;
+      r.setRenderTarget(null);
+      r.render(scene, cam);
+      r.autoClear = autoClear;
+    },
+  };
+})();
+
 function renderFrame(dt) {
   if (data && style && style.update) style.update(clock, dt);
   controls.update();
   if (style && style.render) style.render(renderer, camera, scene3);
   else renderer.render(scene3, camera);
+  frameLegend.render(renderer);
 }
 
 let last = performance.now();
@@ -792,6 +882,10 @@ requestAnimationFrame(animate);
     styleLabel: () => (styleDef ? styleDef.label : ''),
     styleId: () => (styleDef ? styleDef.id : ''),
     sceneName: () => (data ? data.header.name || 'scene' : 'scene'),
+    sceneFile: () => sceneFileName,
+    optionDefaults: () => Object.fromEntries((styleDef ? styleDef.options || [] : []).map(o => [o.id, optionDefault(o)])),
+    hiddenBodies: () => [...hiddenTracks],
+    legendShown: () => ui.showLegend.checked,
     timeRange: () => [tStart, tEnd],
     clockLabel: () => (style && style.clockLabel) || 't',
     setClock: (t) => { clock = t; updateBodies(); },

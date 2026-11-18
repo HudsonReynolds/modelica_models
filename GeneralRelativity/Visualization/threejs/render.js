@@ -1,6 +1,7 @@
 // Offline rendering: steps the simulation clock through a time range with the camera fixed, waits until the
 // active style reports each frame as final (the ray tracer: every refinement sample traced), and writes the
-// frames as a video or an image sequence.
+// frames as a video or an image sequence. A style with a key event (style.slowWindow(), a merger) can be
+// rendered in slow motion around it: frames denser in simulation time by a factor there.
 //
 // Outputs:
 //   - in the browser (any page, also opened from disk): MP4 (H.264) or WebM (VP9) encoded with WebCodecs and
@@ -32,6 +33,7 @@
     #renderDialog progress { width: 100%; height: 10px; margin-top: 10px; }
     #renderDialog .status { font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-line; margin-top: 6px; }
     #renderDialog .hidden { display: none; }
+    #renderDialog input.command { font-family: ui-monospace, monospace; font-size: 11px; }
   `;
 
   // --- small helpers ---------------------------------------------------------------------------------
@@ -216,14 +218,18 @@
       const t0 = number(0), t1 = number(1);
       const seconds = number(10, 'any', 0.05);
       const frameInfo = el('span', { className: 'note' });
-      const samples = number(24, 1, 1);
+      const samples = number(8, 1, 1);
       const mbps = number(12, 'any', 0.5);
       const format = el('select');
       const fileName = el('input', { type: 'text' });
       const chooseFile = el('button', { textContent: 'Choose…', type: 'button', title: 'Pick where to save (browsers with showSaveFilePicker)' });
       const folder = el('input', { type: 'text' });
       const keepFrames = el('input', { type: 'checkbox' });
+      const diskMotion = el('input', { type: 'checkbox' });
+      const slow = number(4, 'any', 1);
       const destNote = el('div', { className: 'note' });
+      const command = el('input', { type: 'text', readOnly: true, className: 'command' });
+      const copyCommand = el('button', { textContent: 'Copy', type: 'button', title: 'Copy the command that renders this from a terminal, without the browser (render_cli.py)' });
       const progress = el('progress', { max: 1, value: 0, className: 'hidden' });
       const status = el('div', { className: 'status' });
       const start = el('button', { textContent: 'Render', type: 'button' });
@@ -235,22 +241,64 @@
         time: el('div', { className: 'row' }, [t0, 'to', t1]),
         file: el('div', { className: 'row' }, [fileName, chooseFile]),
         keep: el('div', { className: 'row' }, [keepFrames, el('span', { textContent: 'also keep the PNG frames' })]),
+        disk: el('div', { className: 'row' }, [diskMotion, el('span', { textContent: 'the accretion disk rotates' })]),
+        slow: el('div', { className: 'row' }, [slow, el('span', { className: 'slowLabel', textContent: '× slower around the merger' })]),
+        command: el('div', { className: 'row' }, [command, copyCommand]),
       };
       const grid = el('div', { className: 'grid' }, [
         ...field('resolution', resolution), ...field('', rows.size),
         ...field('frame rate (fps)', fps),
         ...field('simulation time', rows.time, 'Clock range to render (the scene clock, as in the side panel)'),
-        ...field('video length (s)', seconds), ...field('', frameInfo),
-        ...field('samples per frame', samples, 'Ray tracer: jittered samples averaged per frame (anti-aliasing)'),
+        ...field('video length (s)', seconds),
+        ...field('slow motion', rows.slow, 'Frames are this many times denser in simulation time around the key event (a neutron-star merger: from the first shedding through the collapse and the torus forming; black holes: the last orbits and the ringdown), easing in and out; 1 keeps the clock steady. Renders only, not live playback'),
+        ...field('', frameInfo),
+        ...field('samples per frame', samples, 'Ray tracer: jittered samples averaged per frame (anti-aliasing). 8 is indistinguishable from 48 in a video (mean difference 0.2 of 255 levels, far below video compression); more for stills'),
+        ...field('', rows.disk, 'Ray tracer: the disk pattern turns at the orbital speed of each radius (the style option "disk rotates", for this render)'),
         ...field('format', format),
         ...field('bit rate (Mbit/s)', mbps, 'Browser encoders (MP4, WebM)'),
         ...field('file name', rows.file),
         ...field('output folder', folder, 'Folder on this computer (helper server); ~ is your home folder'),
         ...field('', rows.keep),
+        ...field('command line', rows.command, 'The same render from a terminal, in a headless browser (python3 render_cli.py, in the viewer folder): it keeps going with the browser closed, and can be split across machines'),
       ]);
       dialog.append(el('h3', { textContent: 'Render animation' }), grid, destNote, progress, status, el('div', { className: 'buttons' }, [start, close]));
       const rowOf = (input) => input.closest('.row') || input;
+      const hasDisk = () => { const o = api.options(); return !!(o && 'diskMotion' in o && o.disk); };
       const show = (input, on) => { const node = rowOf(input); node.classList.toggle('hidden', !on); node.previousElementSibling.classList.toggle('hidden', !on); };
+
+      // The command that renders the same thing from a terminal (render_cli.py): scene, style, the options that
+      // differ from their defaults, bodies hidden, legend, camera, time range, frames and output.
+      const shellQuote = (v) => (/^[A-Za-z0-9._\/:=,+-]+$/.test(String(v)) ? String(v) : `'${String(v).replace(/'/g, `'\\''`)}'`);
+      const num = (v) => String(+Number(v).toPrecision(7));
+      function commandLine() {
+        // Run in the viewer folder (where render_cli.py and, normally, the scenes are), when the page knows it.
+        const dir0 = helper && helper.root ? helper.root : location.protocol === 'file:' ? decodeURIComponent(location.pathname.replace(/\/[^/]*$/, '')) : '';
+        const parts = (dir0 ? ['cd', shellQuote(dir0), '&&'] : []).concat(['python3', 'render_cli.py', shellQuote(api.sceneFile() || 'SCENE.ndjson'), '--style', api.styleId()]);
+        const o = api.options() || {}, d = api.optionDefaults();
+        for (const [k, v] of Object.entries(o)) if (k !== 'samples' && k !== 'diskMotion' && d[k] !== undefined && v !== d[k]) parts.push('--option', shellQuote(`${k}=${v}`));
+        for (const b of api.hiddenBodies()) parts.push('--hide', shellQuote(b));
+        if (!api.legendShown()) parts.push('--no-legend');
+        const c = api.camera.position, tg = api.controls.target;
+        parts.push('--camera', [c.x, c.y, c.z].map(num).join(','), '--target', [tg.x, tg.y, tg.z].map(num).join(','));
+        parts.push('--from', num(t0.value), '--to', num(t1.value), '--fps', num(fps.value), '--seconds', num(seconds.value));
+        parts.push('--size', `${even(Number(width.value))}x${even(Number(height.value))}`);
+        if (api.options() && 'samples' in api.options()) parts.push('--samples', String(Math.max(1, Math.round(Number(samples.value)))));
+        if (slowWindow()) parts.push('--slow', num(slow.value));
+        if (hasDisk() && diskMotion.checked) parts.push('--disk-rotates');
+        const f = format.value, base = safeName(fileName.value.replace(/\.(mp4|webm|zip|mpeg)$/i, ''));
+        const ext = f === 'h-mpeg' ? '.mpeg' : f === 'h-png' || f === 'zip' ? '/' : '.mp4';
+        const dir = (folder.value || '~/Documents/Visualization/renders').replace(/\/+$/, '');
+        parts.push('-o', (dir.startsWith('~/') ? '~/' + shellQuote(dir.slice(2)) : shellQuote(dir)) + '/' + base + ext);
+        if (keepFrames.checked && f !== 'h-png' && f !== 'zip') parts.push('--keep-frames');
+        return parts.join(' ');
+      }
+      copyCommand.addEventListener('click', async () => {
+        command.value = commandLine();
+        command.select();
+        try { await navigator.clipboard.writeText(command.value); copyCommand.textContent = 'Copied'; }
+        catch (e) { document.execCommand && document.execCommand('copy'); copyCommand.textContent = 'Copied'; }
+        setTimeout(() => { copyCommand.textContent = 'Copy'; }, 1500);
+      });
 
       const formats = () => {
         const list = [];
@@ -263,12 +311,42 @@
       };
       const extension = (f) => ({ mp4: '.mp4', webm: '.webm', zip: '.zip', 'h-mpeg': '.mpeg', 'h-mp4': '.mp4', 'h-png': '' }[f]);
       const frames = () => Math.max(1, Math.round(Number(fps.value) * Number(seconds.value)));
+      // Slow motion: the style's window [t0, t1] around its key event (style.slowWindow()), where frames are
+      // S times denser in simulation time, with smooth ramps of half the window's length on either side. The
+      // frame times invert the cumulative frame density; S = 1 (or no window) gives evenly spaced frames.
+      const slowWindow = () => { const st = api.style(); return st && st.slowWindow ? st.slowWindow() : null; };
+      function frameTimes(a, b, n, S) {
+        const lin = (k) => (n > 1 ? a + (b - a) * k / (n - 1) : a);
+        const win = slowWindow();
+        if (!(S > 1) || !win || n < 2 || !(b > a)) return Array.from({ length: n }, (_, k) => lin(k));
+        const ramp = 0.5 * (win.t1 - win.t0);
+        const ss = (x, e0, e1) => { const t = Math.min(Math.max((x - e0) / (e1 - e0), 0), 1); return t * t * (3 - 2 * t); };
+        const density = (t) => 1 + (S - 1) * ss(t, win.t0 - ramp, win.t0) * (1 - ss(t, win.t1, win.t1 + ramp));
+        const M = 8192, h = (b - a) / M, C = new Float64Array(M + 1);
+        for (let i = 0; i < M; i++) C[i + 1] = C[i] + 0.5 * h * (density(a + i * h) + density(a + (i + 1) * h));
+        const out = [];
+        let i = 0;
+        for (let k = 0; k < n; k++) {
+          const c = C[M] * k / (n - 1);
+          while (i < M - 1 && C[i + 1] < c) i++;
+          out.push(k === n - 1 ? b : a + h * (i + (c - C[i]) / Math.max(C[i + 1] - C[i], 1e-300)));
+        }
+        return out;
+      }
       const refresh = () => {
         const custom = resolution.value === 'custom';
         if (!custom) { const [w, h] = resolution.value.split('x').map(Number); width.value = w; height.value = h; }
         width.disabled = height.disabled = !custom;
         const n = frames(), span = Number(t1.value) - Number(t0.value);
-        frameInfo.textContent = `${n} frames; ${api.fmt(n > 1 ? span / (n - 1) : 0)} of simulation time per frame, ${api.fmt(span / Math.max(Number(seconds.value), 1e-9))} per second of video`;
+        const win = slowWindow(), S = Number(slow.value);
+        show(slow, !!win);
+        if (win) rows.slow.querySelector('.slowLabel').textContent = `× slower around ${win.label || 'the key event'}`;
+        if (win && S > 1 && n > 2) {
+          const ts = frameTimes(Number(t0.value), Number(t1.value), n, S);
+          let lo = Infinity, hi = 0;
+          for (let k = 1; k < n; k++) { const d = ts[k] - ts[k - 1]; lo = Math.min(lo, d); hi = Math.max(hi, d); }
+          frameInfo.textContent = `${n} frames; ${api.fmt(hi)} of simulation time per frame, down to ${api.fmt(lo)} around ${win.label || 'the key event'}`;
+        } else frameInfo.textContent = `${n} frames; ${api.fmt(n > 1 ? span / (n - 1) : 0)} of simulation time per frame, ${api.fmt(span / Math.max(Number(seconds.value), 1e-9))} per second of video`;
         const f = format.value, viaHelper = f.startsWith('h-');
         show(folder, viaHelper);
         show(keepFrames, viaHelper && f !== 'h-png');
@@ -276,6 +354,7 @@
         chooseFile.classList.toggle('hidden', !(window.showSaveFilePicker && (f === 'mp4' || f === 'webm')));
         const hasSamples = api.options() && 'samples' in api.options();
         show(samples, hasSamples);
+        show(diskMotion, hasDisk());
         const base = fileName.value.replace(/\.(mp4|webm|zip|mpeg)$/i, '');
         fileName.value = base + extension(f);
         const notes = [];
@@ -289,6 +368,7 @@
           if (f === 'zip') notes.push('The whole .zip is assembled in memory before it is saved.');
         }
         notes.push('The camera stays where it is now; every frame is traced until the style reports it final.');
+        command.value = commandLine();
         destNote.textContent = notes.join('\n');
         destNote.classList.toggle('warn', notes.some((n) => /only|did not/.test(n)));
       };
@@ -309,7 +389,10 @@
         else format.value = format.dataset.chosen;
         const [a, b] = api.timeRange();
         t0.value = String(+a.toPrecision(8)); t1.value = String(+b.toPrecision(8));
-        if (api.options() && 'samples' in api.options()) samples.value = api.options().samples;
+        if (hasDisk()) diskMotion.checked = !!api.options().diskMotion;
+        // The style's suggested slow-motion factor, until one is typed here.
+        const win = slowWindow();
+        if (win && !slow.dataset.chosen) slow.value = win.factor ?? 4;
         fileName.value = safeName(`${api.sceneName()}_${api.styleId()}`);
         if (helper && !folder.value) folder.value = helper.defaultFolder || '~/Documents/Visualization/renders';
         fileHandle = null;
@@ -321,8 +404,9 @@
         dialog.showModal();
       }
       button.addEventListener('click', open);
-      [resolution, width, height, fps, t0, t1, seconds, format].forEach((i) => i.addEventListener('input', () => {
+      [resolution, width, height, fps, t0, t1, seconds, format, slow, samples, folder, fileName, keepFrames, diskMotion].forEach((i) => i.addEventListener('input', () => {
         if (i === resolution) resolution.dataset.chosen = resolution.value;
+        if (i === slow) slow.dataset.chosen = '1';
         if (i === format) { format.dataset.chosen = format.value; fileHandle = null; }
         refresh();
       }));
@@ -358,12 +442,51 @@
         requestAnimationFrame(step);
       });
 
+      // The render itself: frames firstFrame .. lastFrame - 1 of cfg.frames (all by default), each drawn until the
+      // style reports it final and handed to the sink; report(progress) after each. Returns the sink's message.
+      async function runRender(cfg, report) {
+        const options = api.options();
+        const savedSamples = options && 'samples' in options ? options.samples : undefined;
+        const savedMotion = hasDisk() ? options.diskMotion : undefined;
+        let sink = null;
+        const began = performance.now();
+        try {
+          sink = cfg.format.startsWith('h-') ? await helperSink(cfg, helper)
+            : cfg.format === 'zip' ? zipSink(cfg) : await encoderSink(cfg, cfg.format);
+          if (savedSamples !== undefined) options.samples = Math.max(1, Math.round(cfg.samples));
+          if (savedMotion !== undefined) options.diskMotion = cfg.diskMotion ? 1 : 0;
+          const times = frameTimes(cfg.t0, cfg.t1, cfg.frames, cfg.slow);
+          window.GRRender.lastTimes = times;
+          const first = Math.max(0, cfg.firstFrame || 0), last = Math.min(cfg.frames, cfg.lastFrame ?? cfg.frames);
+          api.begin(cfg.width, cfg.height);
+          for (let k = first; k < last; k++) {
+            const t = times[k];
+            api.setClock(t);
+            const ok = await renderFrameFinal(cfg, (canvas) => sink.capture(canvas, k));
+            if (!ok) break;
+            await sink.flush();
+            const elapsed = (performance.now() - began) / 1000, done = k - first + 1;
+            report({ k, done, total: last - first, frames: cfg.frames, t, label: api.clockLabel(), describe: sink.describe, elapsed, left: elapsed / done * (last - first - done) });
+          }
+          if (job.cancelled) { sink.abort(); return null; }
+          return await sink.finish();
+        } catch (e) {
+          if (sink) sink.abort();
+          throw e;
+        } finally {
+          api.end();
+          if (savedSamples !== undefined) options.samples = savedSamples;
+          if (savedMotion !== undefined) options.diskMotion = savedMotion;
+        }
+      }
+
       start.addEventListener('click', async () => {
         const cfg = {
           width: even(Number(width.value)), height: even(Number(height.value)), fps: Number(fps.value),
           t0: Number(t0.value), t1: Number(t1.value), frames: frames(), mbps: Number(mbps.value), format: format.value,
           fileName: fileName.value || 'render', baseName: safeName(fileName.value.replace(/\.(mp4|webm|zip|mpeg)$/i, '')),
-          folder: folder.value, keepFrames: keepFrames.checked, fileHandle,
+          folder: folder.value, keepFrames: keepFrames.checked, fileHandle, slow: slowWindow() ? Math.max(1, Number(slow.value) || 1) : 1,
+          samples: Number(samples.value), diskMotion: diskMotion.checked,
         };
         if (!(cfg.fps > 0 && cfg.frames >= 1 && cfg.width >= 16 && cfg.height >= 16 && Number.isFinite(cfg.t0) && Number.isFinite(cfg.t1))) {
           status.textContent = 'Check the numbers.'; return;
@@ -373,39 +496,46 @@
         close.textContent = 'Cancel';
         progress.classList.remove('hidden');
         progress.value = 0;
-        const options = api.options();
-        const savedSamples = options && 'samples' in options ? options.samples : undefined;
-        let sink = null;
         const began = performance.now();
         try {
           status.textContent = 'Starting…';
-          sink = cfg.format.startsWith('h-') ? await helperSink(cfg, helper)
-            : cfg.format === 'zip' ? zipSink(cfg) : await encoderSink(cfg, cfg.format);
-          if (savedSamples !== undefined) options.samples = Math.max(1, Math.round(Number(samples.value)));
-          api.begin(cfg.width, cfg.height);
-          for (let k = 0; k < cfg.frames; k++) {
-            const t = cfg.frames > 1 ? cfg.t0 + (cfg.t1 - cfg.t0) * k / (cfg.frames - 1) : cfg.t0;
-            api.setClock(t);
-            const ok = await renderFrameFinal(cfg, (canvas) => sink.capture(canvas, k));
-            if (!ok) break;
-            await sink.flush();
-            const elapsed = (performance.now() - began) / 1000, left = elapsed / (k + 1) * (cfg.frames - k - 1);
-            progress.value = (k + 1) / cfg.frames;
-            status.textContent = `${sink.describe}\nframe ${k + 1} of ${cfg.frames}, ${api.clockLabel()} = ${api.fmt(t)}\nelapsed ${clockText(elapsed)}, about ${clockText(left)} left`;
-          }
-          if (job.cancelled) { sink.abort(); status.textContent = 'Cancelled.'; }
-          else { status.textContent = 'Finishing…'; status.textContent = `Done in ${clockText((performance.now() - began) / 1000)}: ${await sink.finish()}`; }
+          const message = await runRender(cfg, (p) => {
+            progress.value = p.done / p.total;
+            status.textContent = `${p.describe}\nframe ${p.k + 1} of ${p.frames}, ${p.label} = ${api.fmt(p.t)}\nelapsed ${clockText(p.elapsed)}, about ${clockText(p.left)} left`;
+          });
+          status.textContent = message === null ? 'Cancelled.' : `Done in ${clockText((performance.now() - began) / 1000)}: ${message}`;
         } catch (e) {
-          if (sink) sink.abort();
           status.textContent = 'Render failed: ' + (e && e.message ? e.message : e);
         } finally {
-          api.end();
-          if (savedSamples !== undefined) options.samples = savedSamples;
           job = null;
           start.disabled = false;
           close.textContent = 'Close';
         }
       });
+
+      // Scripted renders (render_cli.py): the same render as the dialog's, from a settings object. Defaults: the
+      // viewer's time range, 24 fps, 10 s, 1920 x 1080, 8 samples, the style's slow-motion factor, H.264 through
+      // the helper. firstFrame / lastFrame render part of the frames (for splitting a render across machines).
+      window.GRRender.render = async (o = {}) => {
+        if (job) throw new Error('a render is already running');
+        if (!api.hasScene()) throw new Error('no scene loaded');
+        helper = await helperInfo();
+        const [a, b] = api.timeRange(), win = slowWindow();
+        const fpsV = o.fps ?? 24;
+        const cfg = {
+          width: even(o.width ?? 1920), height: even(o.height ?? 1080), fps: fpsV,
+          t0: o.t0 ?? a, t1: o.t1 ?? b, frames: o.frames ?? Math.max(1, Math.round(fpsV * (o.seconds ?? 10))),
+          mbps: o.mbps ?? 12, format: o.format ?? 'h-mp4', fileName: o.name ?? 'render', baseName: safeName(o.name ?? 'render'),
+          folder: o.folder ?? '~/Documents/Visualization/renders', keepFrames: !!o.keepFrames, fileHandle: null,
+          slow: win ? Math.max(1, o.slow ?? win.factor ?? 1) : 1, samples: o.samples ?? 8, diskMotion: !!o.diskMotion,
+          firstFrame: o.firstFrame, lastFrame: o.lastFrame,
+        };
+        if (cfg.format.startsWith('h-') && !helper) throw new Error('this format needs the page to be served by render_server.py');
+        job = { cancelled: false };
+        try { return await runRender(cfg, o.onProgress || (() => {})); }
+        finally { job = null; }
+      };
+      window.GRRender.cancel = () => { if (job) job.cancelled = true; };
       // For automated tests.
       window.GRRender.open = open;
       window.GRRender.dialog = dialog;
